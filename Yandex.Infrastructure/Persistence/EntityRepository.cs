@@ -3,9 +3,10 @@ using Yandex.Domain.Entities;
 
 namespace Yandex.Infrastructure.Persistence;
 
-public class EntityRepository<T> : IEntityRepository<T> where T : BaseEntity
+public class EntityRepository<T>(LocalDatabase database) : IEntityRepository<T>
+    where T : BaseEntity
 {
-    private readonly List<T> _items = [];
+    private readonly List<T> _items = database.GetCollection<T>();
 
     public T? GetById(Guid id) => _items.FirstOrDefault(x => x.Id == id);
 
