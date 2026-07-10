@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Yandex.Application.Abstractions;
-using Yandex.Application.Dtos.Events;
+using Yandex.Application.Dtos;
+using Yandex.Application.Requests.Events;
 using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
 

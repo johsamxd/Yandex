@@ -11,6 +11,12 @@
 
     <ItemGroup>
         <PackageReference Include="AutoMapper" Version="16.2.0"/>
+        <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9"/>
+        <PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Mvc" Version="2.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Requests\" />
     </ItemGroup>
 </Project>

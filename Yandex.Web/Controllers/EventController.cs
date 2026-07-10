@@ -2,7 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Yandex.Application;
 using Yandex.Application.Abstractions;
-using Yandex.Application.Dtos.Events;
+using Yandex.Application.Dtos;
+using Yandex.Application.Requests.Events;
 using Yandex.Web.Extensions;
 
 namespace Yandex.Web.Controllers;
