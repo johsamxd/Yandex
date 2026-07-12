@@ -10,8 +10,7 @@ public class CreateEventValidator : AbstractValidator<CreateEventRequest>
             .NotEmpty();
 
         RuleFor(x => x.StartAt)
-            .NotEmpty()
-            .GreaterThan(DateTime.UtcNow);
+            .NotEmpty();
 
         RuleFor(x => x.EndAt)
             .NotEmpty()

@@ -5,9 +5,11 @@ using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos;
 using Yandex.Application.Requests.Events;
 using Yandex.Web.Extensions;
+using Yandex.Web.Filters;
 
 namespace Yandex.Web.Controllers;
 
+[ServiceFilter(typeof(ApiExceptionFilter))]
 [Route("events")]
 public class EventController(IEventService eventService) : ControllerBase
 {

@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using Yandex.Application;
 using Yandex.Infrastructure;
 using Yandex.Web.Extensions;
+using Yandex.Web.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -14,6 +15,9 @@ services.AddHttpLogging(o => { });
 
 services.AddApplicationServices();
 services.AddInfrastructureServices();
+
+// Filters
+services.AddScoped<ApiExceptionFilter>();
 
 services.AddControllers();
 services.AddEndpointsApiExplorer();

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos;
+using Yandex.Application.Exceptions;
 using Yandex.Application.Requests.Events;
 using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
@@ -20,6 +21,8 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
     {
         var data = repository.GetById(id);
 
+        if (data == null) throw new NotFoundException("Event not found"); 
+
         return mapper.Map<EventDto>(data);
     }
 
@@ -32,16 +35,23 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
 
     public void UpdateEvent(Guid id, UpdateEventRequest request)
     {
+        var existing = repository.GetById(id);
+        
+        if (existing == null)
+            throw new NotFoundException($"Event with id {id} not found");
+        
         var data = mapper.Map<Event>(request);
-
-        if (data == null)
-            throw new KeyNotFoundException($"Entity with id {id} not found");
 
         repository.Update(data);
     }
 
     public void DeleteEvent(Guid id)
     {
+        var existing = repository.GetById(id);
+        
+        if (existing == null)
+            throw new NotFoundException($"Event with id {id} not found");
+        
         repository.Remove(id);
     }
 }
