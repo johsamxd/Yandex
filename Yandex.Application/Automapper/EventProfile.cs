@@ -11,6 +11,7 @@ public class EventProfile : Profile
     {
         CreateMap<Event, EventDto>().ReverseMap();
         CreateMap<CreateEventRequest, Event>();
-        CreateMap<UpdateEventRequest, Event>();
+        CreateMap<UpdateEventRequest, Event>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
     }
 }

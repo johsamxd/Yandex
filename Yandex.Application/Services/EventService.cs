@@ -40,9 +40,8 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
         if (existing == null)
             throw new NotFoundException($"Event with id {id} not found");
         
-        var data = mapper.Map<Event>(request);
-
-        repository.Update(data);
+        mapper.Map(request, existing);
+        repository.Update(existing);
     }
 
     public void DeleteEvent(Guid id)
