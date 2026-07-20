@@ -48,7 +48,7 @@ public class EventController(IEventService eventService) : ControllerBase
     public IActionResult CreateEvent([FromBody] CreateEventRequest request)
     {
         var data = eventService.CreateEvent(request);
-        var response = new ApiResponse<EventDto>(data, "Succesfully created new event", HttpStatusCode.Created);
+        var response = new ApiResponse<EventDto>(data, "Successfully created new event", HttpStatusCode.Created);
 
         return response.ToActionResult();
     }
@@ -62,7 +62,7 @@ public class EventController(IEventService eventService) : ControllerBase
     public IActionResult UpdateEvent(Guid id, [FromBody] UpdateEventRequest request)
     {
         var data = eventService.UpdateEvent(id, request);
-        var response = new ApiResponse<EventDto>(data, "Succesfully updated", HttpStatusCode.OK);
+        var response = new ApiResponse<EventDto>(data, "Successfully updated", HttpStatusCode.OK);
 
         return response.ToActionResult();
     }
@@ -76,7 +76,7 @@ public class EventController(IEventService eventService) : ControllerBase
     {
         eventService.DeleteEvent(id);
 
-        var response = new ApiResponse("Succesfully deleted", true, HttpStatusCode.NoContent);
+        var response = new ApiResponse("Successfully deleted", true, HttpStatusCode.NoContent);
 
         return response.ToActionResult();
     }
