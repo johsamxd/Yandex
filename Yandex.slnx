@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Yandex.Application/Yandex.Application.csproj" />
+  <Project Path="Yandex.Domain/Yandex.Domain.csproj" />
+  <Project Path="Yandex.Infrastructure/Yandex.Infrastructure.csproj" />
+  <Project Path="Yandex.Web/Yandex.Web.csproj" />
+</Solution>
