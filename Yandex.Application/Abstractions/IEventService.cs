@@ -7,7 +7,7 @@ public interface IEventService
 {
     IEnumerable<EventDto> GetEvents();
     EventDto GetEvent(Guid id);
-    void CreateEvent(CreateEventRequest request);
-    void UpdateEvent(Guid id, UpdateEventRequest request);
+    EventDto CreateEvent(CreateEventRequest request);
+    EventDto UpdateEvent(Guid id, UpdateEventRequest request);
     void DeleteEvent(Guid id);
 }

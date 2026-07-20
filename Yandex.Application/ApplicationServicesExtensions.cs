@@ -14,7 +14,6 @@ public static class ApplicationServicesExtensions
     {
         services.AddAutoMapper(cfg =>
         {
-            cfg.LicenseKey = "<License Key Here>";
             cfg.AddProfile<EventProfile>();
         });
 

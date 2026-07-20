@@ -10,6 +10,7 @@ using Yandex.Web.Filters;
 namespace Yandex.Web.Controllers;
 
 [ServiceFilter(typeof(ApiExceptionFilter))]
+[ApiController]
 [Route("events")]
 public class EventController(IEventService eventService) : ControllerBase
 {
@@ -46,9 +47,8 @@ public class EventController(IEventService eventService) : ControllerBase
     [HttpPost]
     public IActionResult CreateEvent([FromBody] CreateEventRequest request)
     {
-        eventService.CreateEvent(request);
-
-        var response = new ApiResponse("Succesfully created new event", true, HttpStatusCode.Created);
+        var data = eventService.CreateEvent(request);
+        var response = new ApiResponse<EventDto>(data, "Succesfully created new event", HttpStatusCode.Created);
 
         return response.ToActionResult();
     }
@@ -61,9 +61,8 @@ public class EventController(IEventService eventService) : ControllerBase
     [HttpPut("{id}")]
     public IActionResult UpdateEvent(Guid id, [FromBody] UpdateEventRequest request)
     {
-        eventService.UpdateEvent(id, request);
-
-        var response = new ApiResponse("Succesfully updated", true, HttpStatusCode.NoContent);
+        var data = eventService.UpdateEvent(id, request);
+        var response = new ApiResponse<EventDto>(data, "Succesfully updated", HttpStatusCode.OK);
 
         return response.ToActionResult();
     }

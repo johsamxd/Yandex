@@ -26,29 +26,33 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
         return mapper.Map<EventDto>(data);
     }
 
-    public void CreateEvent(CreateEventRequest request)
+    public EventDto CreateEvent(CreateEventRequest request)
     {
         var data = mapper.Map<Event>(request);
 
         repository.Add(data);
+        
+        return mapper.Map<EventDto>(data);
     }
 
-    public void UpdateEvent(Guid id, UpdateEventRequest request)
+    public EventDto UpdateEvent(Guid id, UpdateEventRequest request)
     {
-        var existing = repository.GetById(id);
+        var data = repository.GetById(id);
         
-        if (existing == null)
+        if (data == null)
             throw new NotFoundException($"Event with id {id} not found");
         
-        mapper.Map(request, existing);
-        repository.Update(existing);
+        mapper.Map(request, data);
+        repository.Update(data);
+        
+        return mapper.Map<EventDto>(data);
     }
 
     public void DeleteEvent(Guid id)
     {
-        var existing = repository.GetById(id);
+        var data = repository.GetById(id);
         
-        if (existing == null)
+        if (data == null)
             throw new NotFoundException($"Event with id {id} not found");
         
         repository.Remove(id);
