@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Yandex.Application.Abstractions;
 using Yandex.Application.Automapper;
-using Yandex.Application.Services;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Yandex.Application.FluentValidation;
+using Yandex.Application.Services;
 
 namespace Yandex.Application;
 

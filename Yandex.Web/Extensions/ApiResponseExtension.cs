@@ -1,11 +1,10 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Yandex.Application;
 using Yandex.Application.Dtos;
 
 namespace Yandex.Web.Extensions;
 
-public static class ApiResponseExtensions
+public static class ApiResponseExtension
 {
     public static IActionResult ToActionResult(this ApiResponse response)
     {

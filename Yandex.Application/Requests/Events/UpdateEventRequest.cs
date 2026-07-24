@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Yandex.Application.Requests.Events;
+﻿namespace Yandex.Application.Requests.Events;
 
 public record UpdateEventRequest(
     string Title,

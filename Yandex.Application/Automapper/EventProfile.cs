@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Yandex.Application.Dtos;
 using Yandex.Application.Dtos.Events;
 using Yandex.Application.Requests.Events;
 using Yandex.Domain.Entities;

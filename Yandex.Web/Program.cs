@@ -1,11 +1,9 @@
-using System.Net;
 using System.Reflection;
-using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using Microsoft.OpenApi;
 using Serilog;
 using Yandex.Application;
 using Yandex.Infrastructure;
-using Yandex.Web.Extensions;
 using Yandex.Web.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +19,13 @@ services.AddSerilog((s, lc) => lc
 // Custom extensions
 services.AddApplicationServices();
 services.AddInfrastructureServices();
+
+// Custom services
+services.AddSingleton(new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    WriteIndented = true
+});
 
 services.AddControllers();
 services.AddEndpointsApiExplorer();

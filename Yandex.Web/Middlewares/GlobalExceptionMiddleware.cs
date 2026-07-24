@@ -1,12 +1,11 @@
 ﻿using System.Net;
 using System.Text.Json;
-using Yandex.Application;
 using Yandex.Application.Dtos;
 using Yandex.Application.Exceptions;
 
 namespace Yandex.Web.Middlewares;
 
-public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
+public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger, JsonSerializerOptions options)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -38,12 +37,6 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
             detail,
             context.Request.Path
         );
-        
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        };
         
         context.Response.StatusCode = (int)statusCode;
         await context.Response.WriteAsync(JsonSerializer.Serialize(response, options));
