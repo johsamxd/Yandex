@@ -17,9 +17,9 @@ public class EventController(IEventService eventService) : ControllerBase
     /// Get events list
     /// </summary>
     [HttpGet]
-    public IActionResult GetEvents()
+    public IActionResult GetEvents([FromQuery] EventFilter filter)
     {
-        var data = eventService.GetEvents();
+        var data = eventService.GetEvents(filter);
         var response = new ApiResponse<IEnumerable<EventDto>>(data);
 
         return response.ToActionResult();
