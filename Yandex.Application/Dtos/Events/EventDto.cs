@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Yandex.Application.Dtos;
+﻿namespace Yandex.Application.Dtos.Events;
 
 public record EventDto(
     Guid Id,

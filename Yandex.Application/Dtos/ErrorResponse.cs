@@ -1,4 +1,4 @@
-﻿namespace Yandex.Application.Models;
+﻿namespace Yandex.Application.Dtos;
 
 public record ErrorResponse(
     string Type,

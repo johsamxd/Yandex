@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos;
+using Yandex.Application.Dtos.Events;
 using Yandex.Application.Exceptions;
 using Yandex.Application.Requests.Events;
 using Yandex.Domain.Abstractions;
@@ -10,7 +11,7 @@ namespace Yandex.Application.Services;
 
 public class EventService(IEntityRepository<Event> repository, IMapper mapper) : IEventService
 {
-    public IEnumerable<EventDto> GetEvents(EventFilter filter)
+    public PaginatedResult<EventDto> GetEvents(EventFilter filter)
     {
         Func<Event, bool> predicate = _ => true;
 
@@ -35,11 +36,20 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
             predicate = e => oldPredicate(e) && e.EndAt <= endDate;
         }
 
-        var data = repository.GetAll()
+        var filtered = repository.GetAll()
             .Where(predicate)
             .ToList();
 
-        return mapper.Map<IEnumerable<EventDto>>(data);
+        var data = filtered
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .ToList();
+
+        var items = mapper.Map<IEnumerable<EventDto>>(data);
+        var totalCount = filtered.Count;
+        var totalPages = (int)Math.Ceiling((double)totalCount / filter.PageSize);
+
+        return new PaginatedResult<EventDto>(items, filter.Page, totalPages, totalCount);
     }
 
     public EventDto GetEvent(Guid id)

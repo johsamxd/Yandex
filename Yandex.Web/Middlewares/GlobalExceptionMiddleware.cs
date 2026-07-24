@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Text.Json;
 using Yandex.Application;
+using Yandex.Application.Dtos;
 using Yandex.Application.Exceptions;
-using Yandex.Application.Models;
 
 namespace Yandex.Web.Middlewares;
 

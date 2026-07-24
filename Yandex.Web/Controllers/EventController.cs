@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Yandex.Application;
 using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos;
-using Yandex.Application.Models;
+using Yandex.Application.Dtos.Events;
 using Yandex.Application.Requests.Events;
 using Yandex.Web.Extensions;
 
@@ -20,7 +20,7 @@ public class EventController(IEventService eventService) : ControllerBase
     public IActionResult GetEvents([FromQuery] EventFilter filter)
     {
         var data = eventService.GetEvents(filter);
-        var response = new ApiResponse<IEnumerable<EventDto>>(data);
+        var response = new ApiResponse<PaginatedResult<EventDto>>(data);
 
         return response.ToActionResult();
     }

@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Yandex.Application;
-using Yandex.Application.Models;
+using Yandex.Application.Dtos;
 
 namespace Yandex.Web.Extensions;
 
