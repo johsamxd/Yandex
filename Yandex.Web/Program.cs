@@ -2,6 +2,7 @@ using System.Net;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
+using Serilog;
 using Yandex.Application;
 using Yandex.Infrastructure;
 using Yandex.Web.Extensions;
@@ -11,8 +12,13 @@ var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var environment = builder.Environment;
 
-services.AddHttpLogging(o => { });
+// Logging
+services.AddSerilog((s, lc) => lc
+    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Services(s)
+);
 
+// Custom extensions
 services.AddApplicationServices();
 services.AddInfrastructureServices();
 
@@ -36,8 +42,8 @@ services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+app.UseSerilogRequestLogging();
 app.UseMiddleware<GlobalExceptionMiddleware>();
-app.UseHttpLogging();
 app.UseHttpsRedirection();
 
 // Configure the HTTP request pipeline.

@@ -6,7 +6,7 @@ using Yandex.Application.Models;
 
 namespace Yandex.Web.Middlewares;
 
-public class GlobalExceptionMiddleware(RequestDelegate next)
+public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -16,6 +16,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next)
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "An unhandled exception occurred while processing the request");
             await HandleExceptionAsync(context, ex);
         }
     }

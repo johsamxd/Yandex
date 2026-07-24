@@ -1,10 +1,9 @@
-﻿using System.Net;
-using FluentValidation;
+﻿using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Results;
-using Yandex.Application.Models;
+using ValidationException = Yandex.Application.Exceptions.ValidationException;
 
 namespace Yandex.Application.FluentValidation;
 
@@ -27,19 +26,7 @@ public class FluentValidationResponseFactory : IFluentValidationAutoValidationRe
         var message = errorMessages.Any()
             ? $"{string.Join("; ", errorMessages)}"
             : "Validation failed";
-        var response = new ErrorResponse(
-            $"https://httpstatuses.com/{(int)HttpStatusCode.BadRequest}",
-            "Validation error",
-            (int)HttpStatusCode.BadRequest,
-            message,
-            context.HttpContext.Request.Path
-        );
         
-        return Task.FromResult<IActionResult?>(
-            new ObjectResult(response)
-            {
-                StatusCode = (int)HttpStatusCode.BadRequest
-            }
-        );
+        throw new ValidationException(message);
     }
 }
