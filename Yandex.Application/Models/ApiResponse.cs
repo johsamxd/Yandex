@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Yandex.Application;
+namespace Yandex.Application.Models;
 
 /// <summary>
 /// Api response with data

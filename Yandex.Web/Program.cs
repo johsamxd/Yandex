@@ -5,7 +5,7 @@ using Microsoft.OpenApi;
 using Yandex.Application;
 using Yandex.Infrastructure;
 using Yandex.Web.Extensions;
-using Yandex.Web.Filters;
+using Yandex.Web.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -15,9 +15,6 @@ services.AddHttpLogging(o => { });
 
 services.AddApplicationServices();
 services.AddInfrastructureServices();
-
-// Filters
-services.AddScoped<ApiExceptionFilter>();
 
 services.AddControllers();
 services.AddEndpointsApiExplorer();
@@ -39,7 +36,9 @@ services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseHttpLogging();
+app.UseHttpsRedirection();
 
 // Configure the HTTP request pipeline.
 if (environment.IsDevelopment())
@@ -49,7 +48,5 @@ if (environment.IsDevelopment())
 }
 
 app.MapControllers();
-
-app.UseHttpsRedirection();
 
 app.Run();

@@ -4,6 +4,7 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Results;
+using Yandex.Application.Models;
 
 namespace Yandex.Application.FluentValidation;
 
@@ -24,12 +25,21 @@ public class FluentValidationResponseFactory : IFluentValidationAutoValidationRe
             .Select(kvp => $"{kvp.Key}: {string.Join(", ", kvp.Value)}")
             .ToList();
         var message = errorMessages.Any()
-            ? $"Validation failed: {string.Join("; ", errorMessages)}"
+            ? $"{string.Join("; ", errorMessages)}"
             : "Validation failed";
-        var response = new ApiResponse(message, false, HttpStatusCode.BadRequest);
-
+        var response = new ErrorResponse(
+            $"https://httpstatuses.com/{(int)HttpStatusCode.BadRequest}",
+            "Validation error",
+            (int)HttpStatusCode.BadRequest,
+            message,
+            context.HttpContext.Request.Path
+        );
+        
         return Task.FromResult<IActionResult?>(
-            new BadRequestObjectResult(response)
+            new ObjectResult(response)
+            {
+                StatusCode = (int)HttpStatusCode.BadRequest
+            }
         );
     }
 }

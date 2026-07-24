@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Yandex.Application;
+using Yandex.Application.Models;
 
 namespace Yandex.Web.Extensions;
 
@@ -13,9 +14,6 @@ public static class ApiResponseExtensions
             HttpStatusCode.OK => new OkObjectResult(response),
             HttpStatusCode.Created => new CreatedResult("", response),
             HttpStatusCode.NoContent => new NoContentResult(),
-            HttpStatusCode.BadRequest => new BadRequestObjectResult(response),
-            HttpStatusCode.NotFound => new NotFoundObjectResult(response),
-            HttpStatusCode.Unauthorized => new UnauthorizedObjectResult(response),
             _ => new ObjectResult(response) { StatusCode = (int)response.StatusCode }
         };
     }
