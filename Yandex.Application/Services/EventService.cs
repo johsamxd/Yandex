@@ -22,16 +22,16 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
             predicate = e => oldPredicate(e) && e.Title.Contains(title, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        if (filter.StartAt.HasValue)
+        if (filter.From.HasValue)
         {
-            var startDate = filter.StartAt.Value.Date;
+            var startDate = filter.From.Value.Date;
             var oldPredicate = predicate;
             predicate = e => oldPredicate(e) && e.StartAt >= startDate;
         }
 
-        if (filter.EndAt.HasValue)
+        if (filter.To.HasValue)
         {
-            var endDate = filter.EndAt.Value.Date;
+            var endDate = filter.To.Value.Date;
             var oldPredicate = predicate;
             predicate = e => oldPredicate(e) && e.EndAt <= endDate;
         }
@@ -49,7 +49,7 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
         var totalCount = filtered.Count;
         var totalPages = (int)Math.Ceiling((double)totalCount / filter.PageSize);
 
-        return new PaginatedResult<EventDto>(items, filter.Page, totalPages, totalCount);
+        return new PaginatedResult<EventDto>(items, filter.Page, data.Count, totalPages, totalCount);
     }
 
     public EventDto GetEvent(Guid id)

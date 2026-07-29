@@ -2,8 +2,8 @@
 
 public record EventFilter(
     string? Title = null,
-    DateTime? StartAt = null,
-    DateTime? EndAt = null,
+    DateTime? From = null,
+    DateTime? To = null,
     int Page = 1,
-    int PageSize = 8
+    int PageSize = 10
 ) : PaginationParams(Page, PageSize);

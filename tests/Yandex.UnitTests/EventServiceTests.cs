@@ -293,7 +293,7 @@ public class EventServiceTests
 
         var filter = new EventFilter
         {
-            StartAt = startDate,
+            From = startDate,
             Page = 1,
             PageSize = 10
         };
@@ -348,7 +348,7 @@ public class EventServiceTests
 
         var filter = new EventFilter
         {
-            EndAt = endDate,
+            To = endDate,
             Page = 1,
             PageSize = 10
         };
@@ -414,7 +414,7 @@ public class EventServiceTests
         Assert.Equal(3, items.Count);
         Assert.Equal(10, result.TotalItems);
         Assert.Equal(4, result.TotalPages);
-        Assert.Equal(2, result.CurrentPage);
+        Assert.Equal(2, result.Page);
     }
 
     [Fact]
@@ -446,8 +446,8 @@ public class EventServiceTests
         var filter = new EventFilter
         {
             Title = "Conference",
-            StartAt = startDate,
-            EndAt = endDate,
+            From = startDate,
+            To = endDate,
             Page = 1,
             PageSize = 10
         };

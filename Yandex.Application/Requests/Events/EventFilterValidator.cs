@@ -15,6 +15,6 @@ public class EventFilterValidator : AbstractValidator<EventFilter>
             .LessThanOrEqualTo(100);
 
         RuleFor(x => x)
-            .Must(x => !(x.StartAt.HasValue && x.EndAt.HasValue && x.StartAt > x.EndAt));
+            .Must(x => !(x.From.HasValue && x.To.HasValue && x.From > x.To));
     }
 }
