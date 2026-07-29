@@ -1,9 +1,9 @@
-﻿using System.Net;
-using FluentValidation;
+﻿using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Results;
+using ValidationException = Yandex.Application.Exceptions.ValidationException;
 
 namespace Yandex.Application.FluentValidation;
 
@@ -24,12 +24,9 @@ public class FluentValidationResponseFactory : IFluentValidationAutoValidationRe
             .Select(kvp => $"{kvp.Key}: {string.Join(", ", kvp.Value)}")
             .ToList();
         var message = errorMessages.Any()
-            ? $"Validation failed: {string.Join("; ", errorMessages)}"
+            ? $"{string.Join("; ", errorMessages)}"
             : "Validation failed";
-        var response = new ApiResponse(message, false, HttpStatusCode.BadRequest);
-
-        return Task.FromResult<IActionResult?>(
-            new BadRequestObjectResult(response)
-        );
+        
+        throw new ValidationException(message);
     }
 }

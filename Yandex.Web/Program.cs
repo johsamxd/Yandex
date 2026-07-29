@@ -1,23 +1,31 @@
-using System.Net;
 using System.Reflection;
-using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using Microsoft.OpenApi;
+using Serilog;
 using Yandex.Application;
 using Yandex.Infrastructure;
-using Yandex.Web.Extensions;
-using Yandex.Web.Filters;
+using Yandex.Web.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var environment = builder.Environment;
 
-services.AddHttpLogging(o => { });
+// Logging
+services.AddSerilog((s, lc) => lc
+    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Services(s)
+);
 
+// Custom extensions
 services.AddApplicationServices();
 services.AddInfrastructureServices();
 
-// Filters
-services.AddScoped<ApiExceptionFilter>();
+// Custom services
+services.AddSingleton(new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    WriteIndented = true
+});
 
 services.AddControllers();
 services.AddEndpointsApiExplorer();
@@ -39,7 +47,9 @@ services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-app.UseHttpLogging();
+app.UseSerilogRequestLogging();
+app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseHttpsRedirection();
 
 // Configure the HTTP request pipeline.
 if (environment.IsDevelopment())
@@ -49,7 +59,5 @@ if (environment.IsDevelopment())
 }
 
 app.MapControllers();
-
-app.UseHttpsRedirection();
 
 app.Run();

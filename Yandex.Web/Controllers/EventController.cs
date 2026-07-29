@@ -1,15 +1,13 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Yandex.Application;
 using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos;
+using Yandex.Application.Dtos.Events;
 using Yandex.Application.Requests.Events;
 using Yandex.Web.Extensions;
-using Yandex.Web.Filters;
 
 namespace Yandex.Web.Controllers;
 
-[ServiceFilter(typeof(ApiExceptionFilter))]
 [ApiController]
 [Route("events")]
 public class EventController(IEventService eventService) : ControllerBase
@@ -18,10 +16,10 @@ public class EventController(IEventService eventService) : ControllerBase
     /// Get events list
     /// </summary>
     [HttpGet]
-    public IActionResult GetEvents()
+    public IActionResult GetEvents([FromQuery] EventFilter filter)
     {
-        var data = eventService.GetEvents();
-        var response = new ApiResponse<IEnumerable<EventDto>>(data);
+        var data = eventService.GetEvents(filter);
+        var response = new ApiResponse<PaginatedResult<EventDto>>(data);
 
         return response.ToActionResult();
     }
@@ -48,7 +46,7 @@ public class EventController(IEventService eventService) : ControllerBase
     public IActionResult CreateEvent([FromBody] CreateEventRequest request)
     {
         var data = eventService.CreateEvent(request);
-        var response = new ApiResponse<EventDto>(data, "Succesfully created new event", HttpStatusCode.Created);
+        var response = new ApiResponse<EventDto>(data, "Successfully created new event", HttpStatusCode.Created);
 
         return response.ToActionResult();
     }
@@ -62,7 +60,7 @@ public class EventController(IEventService eventService) : ControllerBase
     public IActionResult UpdateEvent(Guid id, [FromBody] UpdateEventRequest request)
     {
         var data = eventService.UpdateEvent(id, request);
-        var response = new ApiResponse<EventDto>(data, "Succesfully updated", HttpStatusCode.OK);
+        var response = new ApiResponse<EventDto>(data, "Successfully updated", HttpStatusCode.OK);
 
         return response.ToActionResult();
     }
@@ -76,7 +74,7 @@ public class EventController(IEventService eventService) : ControllerBase
     {
         eventService.DeleteEvent(id);
 
-        var response = new ApiResponse("Succesfully deleted", true, HttpStatusCode.NoContent);
+        var response = new ApiResponse("Successfully deleted", true, HttpStatusCode.NoContent);
 
         return response.ToActionResult();
     }

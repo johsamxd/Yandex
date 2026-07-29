@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos;
+using Yandex.Application.Dtos.Events;
 using Yandex.Application.Exceptions;
 using Yandex.Application.Requests.Events;
 using Yandex.Domain.Abstractions;
@@ -10,18 +11,52 @@ namespace Yandex.Application.Services;
 
 public class EventService(IEntityRepository<Event> repository, IMapper mapper) : IEventService
 {
-    public IEnumerable<EventDto> GetEvents()
+    public PaginatedResult<EventDto> GetEvents(EventFilter filter)
     {
-        var data = repository.GetAll();
+        Func<Event, bool> predicate = _ => true;
 
-        return mapper.Map<IEnumerable<EventDto>>(data);
+        if (!string.IsNullOrWhiteSpace(filter.Title))
+        {
+            var title = filter.Title.Trim();
+            var oldPredicate = predicate;
+            predicate = e => oldPredicate(e) && e.Title.Contains(title, StringComparison.CurrentCultureIgnoreCase);
+        }
+
+        if (filter.From.HasValue)
+        {
+            var startDate = filter.From.Value.Date;
+            var oldPredicate = predicate;
+            predicate = e => oldPredicate(e) && e.StartAt >= startDate;
+        }
+
+        if (filter.To.HasValue)
+        {
+            var endDate = filter.To.Value.Date;
+            var oldPredicate = predicate;
+            predicate = e => oldPredicate(e) && e.EndAt <= endDate;
+        }
+
+        var filtered = repository.GetAll()
+            .Where(predicate)
+            .ToList();
+
+        var data = filtered
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .ToList();
+
+        var items = mapper.Map<IEnumerable<EventDto>>(data);
+        var totalCount = filtered.Count;
+        var totalPages = (int)Math.Ceiling((double)totalCount / filter.PageSize);
+
+        return new PaginatedResult<EventDto>(items, filter.Page, data.Count, totalPages, totalCount);
     }
 
     public EventDto GetEvent(Guid id)
     {
         var data = repository.GetById(id);
 
-        if (data == null) throw new NotFoundException("Event not found"); 
+        if (data == null) throw new NotFoundException("Event not found");
 
         return mapper.Map<EventDto>(data);
     }
@@ -31,30 +66,30 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
         var data = mapper.Map<Event>(request);
 
         repository.Add(data);
-        
+
         return mapper.Map<EventDto>(data);
     }
 
     public EventDto UpdateEvent(Guid id, UpdateEventRequest request)
     {
         var data = repository.GetById(id);
-        
+
         if (data == null)
             throw new NotFoundException($"Event with id {id} not found");
-        
+
         mapper.Map(request, data);
         repository.Update(data);
-        
+
         return mapper.Map<EventDto>(data);
     }
 
     public void DeleteEvent(Guid id)
     {
         var data = repository.GetById(id);
-        
+
         if (data == null)
             throw new NotFoundException($"Event with id {id} not found");
-        
+
         repository.Remove(id);
     }
 }

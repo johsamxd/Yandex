@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/Yandex.UnitTests/Yandex.UnitTests.csproj" />
+  </Folder>
   <Project Path="Yandex.Application/Yandex.Application.csproj" />
   <Project Path="Yandex.Domain/Yandex.Domain.csproj" />
   <Project Path="Yandex.Infrastructure/Yandex.Infrastructure.csproj" />

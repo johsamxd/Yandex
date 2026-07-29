@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Yandex.Application;
+namespace Yandex.Application.Dtos;
 
 /// <summary>
 /// Api response with data
