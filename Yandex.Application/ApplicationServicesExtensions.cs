@@ -24,8 +24,12 @@ public static class ApplicationServicesExtensions
         });
         services.AddValidatorsFromAssembly(typeof(ApplicationServicesExtensions).Assembly);
 
+        // Custom services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
+        
+        // Background services
+        services.AddHostedService<BookingBackgroundService>();
 
         return services;
     }
