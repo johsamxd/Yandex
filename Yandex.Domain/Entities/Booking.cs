@@ -9,7 +9,7 @@ public class Booking : BaseEntity
     public required Guid EventId { get; set; }
 
     [Required]
-    public required BookingStatus Status { get; set; } = BookingStatus.Pending;
+    public BookingStatus Status { get; set; } = BookingStatus.Pending;
 
     public DateTime? ProcessedAt { get; set; }
 }
