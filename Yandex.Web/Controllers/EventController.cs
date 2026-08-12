@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos;
+using Yandex.Application.Dtos.Bookings;
 using Yandex.Application.Dtos.Events;
 using Yandex.Application.Requests.Events;
 using Yandex.Web.Extensions;
@@ -10,7 +11,7 @@ namespace Yandex.Web.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventController(IEventService eventService) : ControllerBase
+public class EventController(IEventService eventService, IBookingService bookingService) : ControllerBase
 {
     /// <summary>
     /// Get events list
@@ -75,6 +76,28 @@ public class EventController(IEventService eventService) : ControllerBase
         eventService.DeleteEvent(id);
 
         var response = new ApiResponse("Successfully deleted", true, HttpStatusCode.NoContent);
+
+        return response.ToActionResult();
+    }
+
+    /// <summary>
+    /// Create booking
+    /// </summary>
+    /// <param name="id">Identifier</param>
+    [HttpPost("{id}/book")]
+    public IActionResult CreateBooking(Guid id)
+    {
+        var data = bookingService.CreateBookingAsync(id);
+        var location = Url.Action(
+            nameof(BookingController.GetBooking),
+            "Booking",
+            new { id = data.Id },
+            Request.Scheme,
+            Request.Host.ToUriComponent()
+        );
+        var response = new ApiResponse<BookingDto>(data, "Successfully created booking", HttpStatusCode.Accepted);
+
+        Response.Headers.Append("Location", location);
 
         return response.ToActionResult();
     }
