@@ -37,7 +37,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
             detail,
             context.Request.Path
         );
-        
+
         context.Response.StatusCode = (int)statusCode;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(JsonSerializer.Serialize(response, options));

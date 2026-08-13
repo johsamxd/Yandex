@@ -188,7 +188,7 @@ public class EventServiceTests
         Assert.Equal(expectedDto.StartAt, result.StartAt);
         Assert.Equal(expectedDto.EndAt, result.EndAt);
     }
-    
+
     [Fact]
     public void DeleteEvent_WithValidId_ShouldRemoveEvent()
     {
@@ -196,7 +196,9 @@ public class EventServiceTests
         var eventId = Guid.NewGuid();
         var existingEvent = new Event
         {
-            Id = eventId, Title = "Test Event", StartAt = DateTime.Parse("2026-11-05 10:00:00"),
+            Id = eventId,
+            Title = "Test Event",
+            StartAt = DateTime.Parse("2026-11-05 10:00:00"),
             EndAt = DateTime.Parse("2026-11-05 18:00:00")
         };
         var events = new List<Event> { existingEvent };
@@ -513,7 +515,7 @@ public class EventServiceTests
         var validator = new CreateEventValidator();
         var invalidRequest = new CreateEventRequest("", "Description", DateTime.Parse("2026-10-05 10:00:00"),
             DateTime.Parse("2026-10-05 18:00:00"));
-        
+
         // Act
         var result = validator.Validate(invalidRequest);
 
@@ -544,7 +546,7 @@ public class EventServiceTests
         // Arrange
         var validator = new UpdateEventValidator();
         var invalidRequest = new UpdateEventRequest(
-            "Updated Event", 
+            "Updated Event",
             "Updated Description",
             DateTime.Parse("2026-10-05 18:00:00"),
             DateTime.Parse("2026-10-05 10:00:00")
@@ -552,7 +554,7 @@ public class EventServiceTests
 
         // Act
         var result = validator.Validate(invalidRequest);
-    
+
         // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName is "StartAt" or "EndAt");
