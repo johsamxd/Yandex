@@ -26,7 +26,7 @@ public class FluentValidationResponseFactory : IFluentValidationAutoValidationRe
         var message = errorMessages.Any()
             ? $"{string.Join("; ", errorMessages)}"
             : "Validation failed";
-        
+
         throw new ValidationException(message);
     }
 }

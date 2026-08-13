@@ -3,11 +3,13 @@ using System.Text.Json;
 using Microsoft.OpenApi;
 using Serilog;
 using Yandex.Application;
+using Yandex.Application.Options;
 using Yandex.Infrastructure;
 using Yandex.Web.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
+var configuration = builder.Configuration;
 var environment = builder.Environment;
 
 // Logging
@@ -16,11 +18,14 @@ services.AddSerilog((s, lc) => lc
     .ReadFrom.Services(s)
 );
 
+// Options
+services.AddOptions();
+services.Configure<BookingBackgroundOptions>(configuration.GetSection("BookingBackground"));
+
 // Custom extensions
 services.AddApplicationServices();
 services.AddInfrastructureServices();
 
-// Custom services
 services.AddSingleton(new JsonSerializerOptions
 {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

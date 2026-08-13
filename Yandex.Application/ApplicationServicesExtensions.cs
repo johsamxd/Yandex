@@ -27,7 +27,7 @@ public static class ApplicationServicesExtensions
         // Custom services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
-        
+
         // Background services
         services.AddHostedService<BookingBackgroundService>();
 

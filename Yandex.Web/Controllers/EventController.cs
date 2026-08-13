@@ -16,7 +16,10 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <summary>
     /// Get events list
     /// </summary>
+    /// <param name="filter">Filter parameters (title, from, to, page, pageSize)</param>
+    /// <response code="200">Returns list of events</response>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PaginatedResult<EventDto>>), StatusCodes.Status200OK)]
     public IActionResult GetEvents([FromQuery] EventFilter filter)
     {
         var data = eventService.GetEvents(filter);
@@ -25,12 +28,15 @@ public class EventController(IEventService eventService, IBookingService booking
         return response.ToActionResult();
     }
 
-
     /// <summary>
     /// Get event
     /// </summary>
-    /// <param name="id">Identifier</param>
+    /// <param name="id">Event identifier</param>
+    /// <response code="200">Returns the event</response>
+    /// <response code="404">Event not found</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<EventDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public IActionResult GetEvent(Guid id)
     {
         var data = eventService.GetEvent(id);
@@ -43,7 +49,11 @@ public class EventController(IEventService eventService, IBookingService booking
     /// Create new event
     /// </summary>
     /// <param name="request">CreateEventRequest object</param>
+    /// <response code="201">Event created successfully</response>
+    /// <response code="400">Invalid request data</response>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<EventDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     public IActionResult CreateEvent([FromBody] CreateEventRequest request)
     {
         var data = eventService.CreateEvent(request);
@@ -55,9 +65,15 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <summary>
     /// Update existing event
     /// </summary>
-    /// <param name="id">Identifier</param>
+    /// <param name="id">Event identifier</param>
     /// <param name="request">UpdateEventRequest object</param>
+    /// <response code="200">Event updated successfully</response>
+    /// <response code="400">Invalid request data</response>
+    /// <response code="404">Event not found</response>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<EventDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public IActionResult UpdateEvent(Guid id, [FromBody] UpdateEventRequest request)
     {
         var data = eventService.UpdateEvent(id, request);
@@ -69,8 +85,12 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <summary>
     /// Delete event
     /// </summary>
-    /// <param name="id">Identifier</param>
+    /// <param name="id">Event identifier</param>
+    /// <response code="204">Event deleted successfully</response>
+    /// <response code="404">Event not found</response>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public IActionResult DeleteEvent(Guid id)
     {
         eventService.DeleteEvent(id);
@@ -84,13 +104,17 @@ public class EventController(IEventService eventService, IBookingService booking
     /// Create booking
     /// </summary>
     /// <param name="id">Identifier</param>
+    /// <response code="202">Booking accepted for processing</response>
+    /// <response code="404">Event not found</response>
     [HttpPost("{id}/book")]
-    public IActionResult CreateBooking(Guid id)
+    [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateBooking(Guid id)
     {
-        var data = bookingService.CreateBookingAsync(id);
+        var data = await bookingService.CreateBookingAsync(id);
         var location = Url.Action(
             nameof(BookingController.GetBooking),
-            "Booking",
+            nameof(BookingController).Replace("Controller", ""),
             new { id = data.Id },
             Request.Scheme,
             Request.Host.ToUriComponent()

@@ -12,7 +12,7 @@ public class BookingService(
     IEntityRepository<Event> eventRepository,
     IMapper mapper) : IBookingService
 {
-    public BookingDto CreateBookingAsync(Guid eventId)
+    public async Task<BookingDto> CreateBookingAsync(Guid eventId)
     {
         var existingEvent = eventRepository.GetById(eventId);
         if (existingEvent is null) throw new NotFoundException($"Event with id: {eventId} not found");
@@ -24,14 +24,18 @@ public class BookingService(
 
         bookingRepository.Add(data);
 
+        await Task.Delay(100);
+
         return mapper.Map<BookingDto>(data);
     }
 
-    public BookingDto GetBookingByIdAsync(Guid bookingId)
+    public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId)
     {
         var data = bookingRepository.GetById(bookingId);
         if (data is null) throw new NotFoundException($"Booking with id: {bookingId} not found");
-        
+
+        await Task.Delay(100);
+
         return mapper.Map<BookingDto>(data);
     }
 }

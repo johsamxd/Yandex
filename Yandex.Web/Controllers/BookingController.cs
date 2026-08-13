@@ -13,11 +13,15 @@ public class BookingController(IBookingService service) : ControllerBase
     /// <summary>
     /// Get booking
     /// </summary>
-    /// <param name="id">Identifier</param>
+    /// <param name="id">Booking identifier</param>
+    /// <response code="200">Returns the event</response>
+    /// <response code="404">Event not found</response>
     [HttpGet("{id}")]
-    public IActionResult GetBooking(Guid id)
+    [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetBooking(Guid id)
     {
-        var data = service.GetBookingByIdAsync(id);
+        var data = await service.GetBookingByIdAsync(id);
         var response = new ApiResponse<BookingDto>(data);
 
         return response.ToActionResult();

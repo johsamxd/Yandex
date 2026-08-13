@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Yandex.Application.Options;
 using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
 using Yandex.Domain.Enums;
@@ -9,10 +11,11 @@ namespace Yandex.Application.Services;
 
 public class BookingBackgroundService(
     IServiceProvider serviceProvider,
-    ILogger<BookingBackgroundService> logger) : BackgroundService
+    ILogger<BookingBackgroundService> logger,
+    IOptions<BookingBackgroundOptions> options) : BackgroundService
 {
-    private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(5);
-    private readonly TimeSpan _processingDelay = TimeSpan.FromSeconds(2);
+    private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(options.Value.PollingIntervalSeconds);
+    private readonly TimeSpan _processingDelay = TimeSpan.FromSeconds(options.Value.ProcessingDelaySeconds);
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -53,6 +56,8 @@ public class BookingBackgroundService(
 
         foreach (var booking in pendingBookings)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 // Имитация обращения к внешней системе
@@ -69,6 +74,10 @@ public class BookingBackgroundService(
 
                 logger.LogInformation("Booking {BookingId} confirmed at {ProcessedAt}",
                     booking.Id, booking.ProcessedAt);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
             }
             catch (Exception ex)
             {

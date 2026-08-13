@@ -102,7 +102,7 @@ Content-Type: application/json
     "endAt": "2026-12-01T18:00:00Z"
 }
 ```
-### 2. Создание события
+### 2. Создание брони
 ```http request
 POST /events/3f8c9a2b-1d4e-5f6a-7b8c-9d0e1f2a3b4c/book
 ```
@@ -115,7 +115,8 @@ Location: /bookings/7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
     "id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
     "eventId": "3f8c9a2b-1d4e-5f6a-7b8c-9d0e1f2a3b4c",
     "status": "Pending",
-    "createdAt": "2026-08-12T10:00:00Z"
+    "createdAt": "2026-08-12T10:00:00Z",
+    "processedAt": null
 }
 ```
 
