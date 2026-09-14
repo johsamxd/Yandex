@@ -28,7 +28,7 @@ public class EventServiceTests
     {
         // Arrange
         var request = new CreateEventRequest("New Event", "Description", DateTime.Parse("2026-10-05 10:00:00"),
-            DateTime.Parse("2026-10-05 18:00:00"));
+            DateTime.Parse("2026-10-05 18:00:00"), 100);
 
         var eventEntity = new Event
         {
@@ -36,7 +36,9 @@ public class EventServiceTests
             Title = request.Title,
             Description = request.Description,
             StartAt = request.StartAt,
-            EndAt = request.EndAt
+            EndAt = request.EndAt,
+            TotalSeats = 100,
+            AvailableSeats = 100
         };
 
         var expectedDto = new EventDto(
@@ -44,7 +46,9 @@ public class EventServiceTests
             eventEntity.Title,
             eventEntity.Description,
             eventEntity.StartAt,
-            eventEntity.EndAt
+            eventEntity.EndAt,
+            eventEntity.TotalSeats,
+            eventEntity.AvailableSeats
         );
 
         _repositoryMock.Setup(x => x.Add(eventEntity));
@@ -71,22 +75,32 @@ public class EventServiceTests
         {
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 1", Description = "Description 1",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"), EndAt = DateTime.Parse("2026-10-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 1",
+                Description = "Description 1",
+                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 2", Description = "Description 2",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"), EndAt = DateTime.Parse("2026-11-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 2",
+                Description = "Description 2",
+                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             }
         };
 
         var expectedDtos = new List<EventDto>
         {
             new(events[0].Id, "Event 1", "Description 1", DateTime.Parse("2026-10-05 10:10:10"),
-                DateTime.Parse("2026-10-05 20:10:10")),
+                DateTime.Parse("2026-10-05 20:10:10"), 100, 100),
             new(events[1].Id, "Event 2", "Description 2", DateTime.Parse("2026-11-05 10:10:10"),
-                DateTime.Parse("2026-11-05 20:10:10"))
+                DateTime.Parse("2026-11-05 20:10:10"), 100, 100)
         };
 
         _repositoryMock.Setup(x => x.GetAll()).Returns(events);
@@ -121,7 +135,9 @@ public class EventServiceTests
             Title = "Test Event",
             Description = "Test Description",
             StartAt = DateTime.Parse("2026-10-05 10:00:00"),
-            EndAt = DateTime.Parse("2026-10-05 18:00:00")
+            EndAt = DateTime.Parse("2026-10-05 18:00:00"),
+            TotalSeats = 100,
+            AvailableSeats = 100
         };
 
         var expectedDto = new EventDto(
@@ -129,7 +145,9 @@ public class EventServiceTests
             eventEntity.Title,
             eventEntity.Description,
             eventEntity.StartAt,
-            eventEntity.EndAt
+            eventEntity.EndAt,
+            eventEntity.TotalSeats,
+            eventEntity.AvailableSeats
         );
 
         _repositoryMock.Setup(x => x.GetById(eventId)).Returns(eventEntity);
@@ -158,7 +176,9 @@ public class EventServiceTests
             Title = "Old Title",
             Description = "Old Description",
             StartAt = DateTime.Parse("2026-10-05 10:00:00"),
-            EndAt = DateTime.Parse("2026-10-05 18:00:00")
+            EndAt = DateTime.Parse("2026-10-05 18:00:00"),
+            TotalSeats = 100,
+            AvailableSeats = 100
         };
 
         var updateRequest = new UpdateEventRequest("Updated Title", "Updated Description",
@@ -169,7 +189,9 @@ public class EventServiceTests
             updateRequest.Title,
             updateRequest.Description,
             updateRequest.StartAt,
-            updateRequest.EndAt
+            updateRequest.EndAt,
+            100,
+            100
         );
 
         _repositoryMock.Setup(x => x.GetById(eventId)).Returns(existingEvent);
@@ -199,7 +221,9 @@ public class EventServiceTests
             Id = eventId,
             Title = "Test Event",
             StartAt = DateTime.Parse("2026-11-05 10:00:00"),
-            EndAt = DateTime.Parse("2026-11-05 18:00:00")
+            EndAt = DateTime.Parse("2026-11-05 18:00:00"),
+            TotalSeats = 100,
+            AvailableSeats = 100
         };
         var events = new List<Event> { existingEvent };
 
@@ -224,18 +248,33 @@ public class EventServiceTests
         {
             new()
             {
-                Id = Guid.NewGuid(), Title = "Conference 2026", Description = "Tech conference",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"), EndAt = DateTime.Parse("2026-10-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Conference 2026",
+                Description = "Tech conference",
+                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Workshop C#", Description = "C# workshop",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"), EndAt = DateTime.Parse("2026-11-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Workshop C#",
+                Description = "C# workshop",
+                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Meeting", Description = "Team meeting",
-                StartAt = DateTime.Parse("2026-12-05 10:10:10"), EndAt = DateTime.Parse("2026-12-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Meeting",
+                Description = "Team meeting",
+                StartAt = DateTime.Parse("2026-12-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-12-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             }
         };
 
@@ -249,7 +288,7 @@ public class EventServiceTests
         var expectedDtos = new List<EventDto>
         {
             new(events[0].Id, "Conference 2026", "Tech conference",
-                DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"))
+                DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"), 100, 100)
         };
 
         _repositoryMock.Setup(x => x.GetAll()).Returns(events);
@@ -278,18 +317,33 @@ public class EventServiceTests
         {
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 1", Description = "Description 1",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"), EndAt = DateTime.Parse("2026-10-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 1",
+                Description = "Description 1",
+                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 2", Description = "Description 2",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"), EndAt = DateTime.Parse("2026-11-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 2",
+                Description = "Description 2",
+                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 3", Description = "Description 3",
-                StartAt = DateTime.Parse("2026-12-05 10:10:10"), EndAt = DateTime.Parse("2026-12-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 3",
+                Description = "Description 3",
+                StartAt = DateTime.Parse("2026-12-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-12-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             }
         };
 
@@ -303,9 +357,9 @@ public class EventServiceTests
         var expectedDtos = new List<EventDto>
         {
             new(events[1].Id, "Event 2", "Description 2",
-                DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10")),
+                DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10"), 100, 100),
             new(events[2].Id, "Event 3", "Description 3",
-                DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"))
+                DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"), 100, 100)
         };
 
         _repositoryMock.Setup(x => x.GetAll()).Returns(events);
@@ -333,18 +387,33 @@ public class EventServiceTests
         {
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 1", Description = "Description 1",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"), EndAt = DateTime.Parse("2026-10-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 1",
+                Description = "Description 1",
+                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 2", Description = "Description 2",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"), EndAt = DateTime.Parse("2026-11-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 2",
+                Description = "Description 2",
+                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Event 3", Description = "Description 3",
-                StartAt = DateTime.Parse("2026-12-05 10:10:10"), EndAt = DateTime.Parse("2026-12-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Event 3",
+                Description = "Description 3",
+                StartAt = DateTime.Parse("2026-12-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-12-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             }
         };
 
@@ -358,7 +427,7 @@ public class EventServiceTests
         var expectedDtos = new List<EventDto>
         {
             new(events[0].Id, "Event 1", "Description 1",
-                DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"))
+                DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"), 100, 100)
         };
 
         _repositoryMock.Setup(x => x.GetAll()).Returns(events);
@@ -390,7 +459,9 @@ public class EventServiceTests
                 Title = $"Event {i}",
                 Description = $"Description {i}",
                 StartAt = DateTime.Now.AddDays(i),
-                EndAt = DateTime.Now.AddDays(i).AddHours(2)
+                EndAt = DateTime.Now.AddDays(i).AddHours(2),
+                TotalSeats = 100,
+                AvailableSeats = 100
             });
         }
 
@@ -398,9 +469,9 @@ public class EventServiceTests
 
         var expectedDtos = new List<EventDto>
         {
-            new(events[3].Id, "Event 4", "Description 4", events[3].StartAt, events[3].EndAt),
-            new(events[4].Id, "Event 5", "Description 5", events[4].StartAt, events[4].EndAt),
-            new(events[5].Id, "Event 6", "Description 6", events[5].StartAt, events[5].EndAt)
+            new(events[3].Id, "Event 4", "Description 4", events[3].StartAt, events[3].EndAt, 100, 100),
+            new(events[4].Id, "Event 5", "Description 5", events[4].StartAt, events[4].EndAt, 100, 100),
+            new(events[5].Id, "Event 6", "Description 6", events[5].StartAt, events[5].EndAt, 100, 100)
         };
 
         _repositoryMock.Setup(x => x.GetAll()).Returns(events);
@@ -430,18 +501,33 @@ public class EventServiceTests
         {
             new()
             {
-                Id = Guid.NewGuid(), Title = "Conference 2026", Description = "Tech conference",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"), EndAt = DateTime.Parse("2026-10-05 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Conference 2026",
+                Description = "Tech conference",
+                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
+                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Conference 2026", Description = "Tech conference",
-                StartAt = DateTime.Parse("2026-11-15 10:10:10"), EndAt = DateTime.Parse("2026-11-15 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Conference 2026",
+                Description = "Tech conference",
+                StartAt = DateTime.Parse("2026-11-15 10:10:10"),
+                EndAt = DateTime.Parse("2026-11-15 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             },
             new()
             {
-                Id = Guid.NewGuid(), Title = "Workshop C#", Description = "C# workshop",
-                StartAt = DateTime.Parse("2026-11-20 10:10:10"), EndAt = DateTime.Parse("2026-11-20 20:10:10")
+                Id = Guid.NewGuid(),
+                Title = "Workshop C#",
+                Description = "C# workshop",
+                StartAt = DateTime.Parse("2026-11-20 10:10:10"),
+                EndAt = DateTime.Parse("2026-11-20 20:10:10"),
+                TotalSeats = 100,
+                AvailableSeats = 100
             }
         };
 
@@ -457,7 +543,7 @@ public class EventServiceTests
         var expectedDtos = new List<EventDto>
         {
             new(events[1].Id, "Conference 2026", "Tech conference",
-                DateTime.Parse("2026-11-15 10:10:10"), DateTime.Parse("2026-11-15 20:10:10"))
+                DateTime.Parse("2026-11-15 10:10:10"), DateTime.Parse("2026-11-15 20:10:10"), 100, 100)
         };
 
         _repositoryMock.Setup(x => x.GetAll()).Returns(events);
@@ -487,7 +573,7 @@ public class EventServiceTests
 
         // Act & Assert
         var exception = Assert.Throws<NotFoundException>(() => _service.GetEvent(nonExistentId));
-        Assert.Equal("Event not found", exception.Message);
+        Assert.Equal($"Event with id {nonExistentId} not found", exception.Message);
 
         _repositoryMock.Verify(x => x.GetById(nonExistentId), Times.Once);
         _mapperMock.Verify(x => x.Map<EventDto>(It.IsAny<Event>()), Times.Never);
@@ -514,7 +600,7 @@ public class EventServiceTests
         // Arrange
         var validator = new CreateEventValidator();
         var invalidRequest = new CreateEventRequest("", "Description", DateTime.Parse("2026-10-05 10:00:00"),
-            DateTime.Parse("2026-10-05 18:00:00"));
+            DateTime.Parse("2026-10-05 18:00:00"), 100);
 
         // Act
         var result = validator.Validate(invalidRequest);
@@ -530,7 +616,7 @@ public class EventServiceTests
         // Arrange
         var validator = new CreateEventValidator();
         var invalidRequest = new CreateEventRequest("Invalid Event", "Description",
-            DateTime.Parse("2026-10-05 18:00:00"), DateTime.Parse("2026-10-05 10:00:00"));
+            DateTime.Parse("2026-10-05 18:00:00"), DateTime.Parse("2026-10-05 10:00:00"), 100);
 
         // Act
         var result = validator.Validate(invalidRequest);

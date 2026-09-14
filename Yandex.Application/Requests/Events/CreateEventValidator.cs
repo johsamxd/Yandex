@@ -15,5 +15,7 @@ public class CreateEventValidator : AbstractValidator<CreateEventRequest>
         RuleFor(x => x.EndAt)
             .NotEmpty()
             .GreaterThan(x => x.StartAt);
+
+        RuleFor(x => x.TotalSeats).GreaterThan(0);
     }
 }

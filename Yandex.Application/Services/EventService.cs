@@ -55,8 +55,10 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
     public EventDto GetEvent(Guid id)
     {
         var data = repository.GetById(id);
-
-        if (data == null) throw new NotFoundException("Event not found");
+        if (data == null)
+        {
+            throw new NotFoundException($"Event with id {id} not found");
+        }
 
         return mapper.Map<EventDto>(data);
     }
@@ -64,7 +66,7 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
     public EventDto CreateEvent(CreateEventRequest request)
     {
         var data = mapper.Map<Event>(request);
-
+        data.AvailableSeats = request.TotalSeats;
         repository.Add(data);
 
         return mapper.Map<EventDto>(data);
@@ -73,9 +75,10 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
     public EventDto UpdateEvent(Guid id, UpdateEventRequest request)
     {
         var data = repository.GetById(id);
-
         if (data == null)
+        {
             throw new NotFoundException($"Event with id {id} not found");
+        }
 
         mapper.Map(request, data);
         repository.Update(data);
@@ -86,9 +89,10 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
     public void DeleteEvent(Guid id)
     {
         var data = repository.GetById(id);
-
         if (data == null)
+        {
             throw new NotFoundException($"Event with id {id} not found");
+        }
 
         repository.Remove(id);
     }

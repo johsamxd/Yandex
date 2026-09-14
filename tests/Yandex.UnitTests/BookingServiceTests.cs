@@ -39,6 +39,8 @@ public class BookingServiceTests
             Description = "Test Description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(1).AddHours(2),
+            TotalSeats = 100,
+            AvailableSeats = 100
         };
 
         _eventRepositoryMock.Setup(x => x.GetById(eventId)).Returns(existingEvent);
@@ -76,6 +78,8 @@ public class BookingServiceTests
             Description = "Test Description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(1).AddHours(2),
+            TotalSeats = 100,
+            AvailableSeats = 100
         };
 
         _eventRepositoryMock.Setup(x => x.GetById(eventId)).Returns(existingEvent);
