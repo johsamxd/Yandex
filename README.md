@@ -32,14 +32,14 @@ dotnet test
 - [Swagger](http://localhost:5128/swagger/index.html)
 
 ### Мероприятия (Events)
-| Метод | Endpoint | Описание | Статус |
-|-------|----------|----------|--------|
-| GET | `/events` | Получить список событий с фильтрацией и пагинацией | 200 OK |
-| GET | `/events/{id}` | Получить событие по ID | 200 OK / 404 Not Found |
-| POST | `/events` | Создать новое событие | 201 Created / 400 Bad Request |
-| PUT | `/events/{id}` | Обновить событие | 204 No Content / 404 Not Found |
-| DELETE | `/events/{id}` | Удалить событие | 204 No Content / 404 Not Found |
-| POST | `/events/{id}/book` | Создать бронь на событие | 202 Accepted / 404 Not Found |
+| Метод | Endpoint | Описание | Статус                                      |
+|-------|----------|----------|---------------------------------------------|
+| GET | `/events` | Получить список событий с фильтрацией и пагинацией | 200 OK                                      |
+| GET | `/events/{id}` | Получить событие по ID | 200 OK / 404 Not Found                      |
+| POST | `/events` | Создать новое событие | 201 Created / 400 Bad Request               |
+| PUT | `/events/{id}` | Обновить событие | 204 No Content / 404 Not Found              |
+| DELETE | `/events/{id}` | Удалить событие | 204 No Content / 404 Not Found              |
+| POST | `/events/{id}/book` | Создать бронь на событие | 202 Accepted / 404 Not Found / 409 Conflict |
 
 ### Бронирования (Bookings)
 
@@ -51,14 +51,16 @@ dotnet test
 
 ### Модель Event
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `Id` | `Guid` | Уникальный идентификатор события |
-| `Title` | `string` | Название события (обязательное) |
-| `Description` | `string?` | Описание события (опциональное) |
-| `StartAt` | `DateTime` | Дата и время начала события (обязательное) |
-| `EndAt` | `DateTime` | Дата и время окончания события (обязательное) |
-| `CreatedAt` | `DateTime` | Дата и время создания записи |
+| Поле          | Тип        | Описание                                      |
+|---------------|------------|-----------------------------------------------|
+| `Id`          | `Guid`     | Уникальный идентификатор события              |
+| `Title`       | `string`   | Название события (обязательное)               |
+| `Description` | `string?`  | Описание события (опциональное)               |
+| `StartAt`     | `DateTime` | Дата и время начала события (обязательное)    |
+| `EndAt`       | `DateTime` | Дата и время окончания события (обязательное) |
+| `CreatedAt`   | `DateTime` | Дата и время создания записи                  |
+| `TotalSeats`       | `int`      | Общее количество мест на событии (обязательное)                    |
+| `AvailableSeats`   | `int`      | Текущее количество свободных мест                        |
 
 ### Модель Booking
 
@@ -110,13 +112,27 @@ POST /events/3f8c9a2b-1d4e-5f6a-7b8c-9d0e1f2a3b4c/book
 ```http request
 202 Accepted
 Location: /bookings/7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
-
 {
     "id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
     "eventId": "3f8c9a2b-1d4e-5f6a-7b8c-9d0e1f2a3b4c",
     "status": "Pending",
     "createdAt": "2026-08-12T10:00:00Z",
     "processedAt": null
+}
+```
+
+### 3. Бронирование при отсутствии мест
+
+Если все места заняты (`AvailableSeats == 0`), `POST /events/{id}/book` возвращает:
+
+```http request
+409 Conflict
+{
+    "type": "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+    "title": "No available seats",
+    "status": 409,
+    "detail": "No available seats for this event",
+    "instance": "/events/3f8c9a2b-1d4e-5f6a-7b8c-9d0e1f2a3b4c/book"
 }
 ```
 
@@ -130,7 +146,24 @@ Location: /bookings/7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
   - Заполняется поле `ProcessedAt`
 - Время выполнения: до 2 секунд на бронь
 
+## Примитивы синхронизации
+В проекте используются два примитива синхронизации под разные задачи. В `BookingService.CreateBookingAsync` стоит один общий lock (_bookingLock) — он сериализует проверку и резервирование места для одного события и защищает от овербукинга, когда несколько параллельных запросов одновременно пытаются занять последнее место; внутри лока нет `await`, поэтому `lock` здесь проще и быстрее, чем `SemaphoreSlim`, но он работает только в пределах одного процесса, и при нескольких инстансах приложения понадобится транзакция в БД (`UPDATE ... WHERE AvailableSeats > 0`). В `BookingBackgroundService` стоит `SemaphoreSlim(3, 3)` — он ограничивает параллелизм фоновой обработки броней тремя одновременно, чтобы не перегружать внешнюю систему и не создавать лишние `DbContext`, и здесь именно семафор, а не `lock`, потому что внутри критической секции есть `await`; `WaitAsync` вызывается до `try`, `Release` — в `finally`, чтобы счётчик не «протекал» при отмене. Дополнительно каждая бронь обрабатывается в отдельном `scope` (`Task.WhenAll` + `CreateScope` на задачу), потому что `DbContext` не потокобезопасен, а семафор `(3,3)` ограничивает число одновременных контекстов.
+
 ## Список изменений:
+
+### 0.4.0
+
+**Добавлено:**
+- Свойства `TotalSeats` и `AvailableSeats` в сущность Event
+- Возврат `409 Conflict` при бронировании события без свободных мест
+
+**Изменено:**
+- `POST /events` теперь требует `totalSeats` в теле запроса
+- `POST /events/{id}/book` теперь может возвращать `409 Conflict`
+- `BookingService` и `BookingBackgroundService` теперь потокобезопасны
+
+**Удалено:**
+- Нет
 
 ### 0.3.0
 
@@ -167,6 +200,12 @@ Location: /bookings/7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
     - Паттерн "быстрый ответ + отложенная обработка" (Async Request-Reply)
     - `202 Accepted` для асинхронных операций
     - `Location`-заголовок для отслеживания статуса
+
+**Изменено:**
+- Нет
+
+**Удалено:**
+- Нет
 
 ### 0.2.0
 
