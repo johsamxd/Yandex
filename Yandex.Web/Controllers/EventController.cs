@@ -106,9 +106,11 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <param name="id">Identifier</param>
     /// <response code="202">Booking accepted for processing</response>
     /// <response code="404">Event not found</response>
+    /// <response code="409">Event has no available seats</response>
     [HttpPost("{id}/book")]
     [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateBooking(Guid id)
     {
         var data = await bookingService.CreateBookingAsync(id);

@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Yandex.Application.Dtos;
 using Yandex.Application.Exceptions;
+using Yandex.Application.Exceptions.Booking;
 
 namespace Yandex.Web.Middlewares;
 
@@ -26,6 +27,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
         {
             NotFoundException => (HttpStatusCode.NotFound, "Resource not found", exception.Message),
             ValidationException => (HttpStatusCode.BadRequest, "Validation error", exception.Message),
+            NoAvailableSeatsException => (HttpStatusCode.Conflict, "No available seats for this event", exception.Message),
             _ => (HttpStatusCode.InternalServerError, "Internal server error",
                 "An unexpected error occurred. Please try again later.")
         };
