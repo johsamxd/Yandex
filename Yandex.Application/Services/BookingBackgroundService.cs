@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Yandex.Application.Exceptions;
 using Yandex.Application.Options;
 using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
@@ -44,11 +43,9 @@ public class BookingBackgroundService(
     {
         using var scope = serviceProvider.CreateScope();
         var bookingRepository = scope.ServiceProvider.GetRequiredService<IEntityRepository<Booking>>();
-
-        var pendingBookings = bookingRepository
-            .GetAll()
-            .Where(b => b.Status == BookingStatus.Pending)
-            .ToList();
+        var query = bookingRepository.Query()
+            .Where(b => b.Status == BookingStatus.Pending);
+        var pendingBookings = await bookingRepository.ToListAsync(query, cancellationToken);
 
         if (pendingBookings.Count == 0)
         {
@@ -70,6 +67,7 @@ public class BookingBackgroundService(
         using var scope = serviceProvider.CreateScope();
         var bookingRepository = scope.ServiceProvider.GetRequiredService<IEntityRepository<Booking>>();
         var eventRepository = scope.ServiceProvider.GetRequiredService<IEntityRepository<Event>>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
         await Task.Delay(_processingDelay, cancellationToken);
         await _processingSemaphore.WaitAsync(cancellationToken);
@@ -79,17 +77,19 @@ public class BookingBackgroundService(
             logger.LogDebug("Processing booking {BookingId} for event {EventId}",
                 booking.Id, booking.EventId);
 
-            var existingEvent = eventRepository.GetById(booking.EventId);
+            var existingEvent = await eventRepository.GetByIdAsync(booking.EventId, cancellationToken);
             if (existingEvent == null)
             {
                 booking.Reject();
-                bookingRepository.Update(booking);
+                await bookingRepository.UpdateAsync(booking, cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
                 logger.LogWarning("Event with id {EventId} was not found", booking.EventId);
                 return;
             }
 
             booking.Confirm();
-            bookingRepository.Update(booking);
+            await bookingRepository.UpdateAsync(booking, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("Booking {BookingId} confirmed at {ProcessedAt}",
                 booking.Id, booking.ProcessedAt);
@@ -102,10 +102,11 @@ public class BookingBackgroundService(
         {
             logger.LogError(ex, "Error processing booking {BookingId}", booking.Id);
             booking.Reject();
-            bookingRepository.Update(booking);
+            await bookingRepository.UpdateAsync(booking, cancellationToken);
 
-            var existingEvent = eventRepository.GetById(booking.EventId);
+            var existingEvent = await eventRepository.GetByIdAsync(booking.EventId, cancellationToken);
             existingEvent?.ReleaseSeats();
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
         finally
         {

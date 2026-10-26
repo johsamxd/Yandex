@@ -17,14 +17,16 @@ public class EventServiceTests
 
     public EventServiceTests()
     {
+        var unitOfWorkMock = new Mock<IUnitOfWork>();
+
         _repositoryMock = new Mock<IEntityRepository<Event>>();
         _mapperMock = new Mock<IMapper>();
-        _service = new EventService(_repositoryMock.Object, _mapperMock.Object);
+        _service = new EventService(_repositoryMock.Object, unitOfWorkMock.Object, _mapperMock.Object);
     }
 
     // Success scenarios
     [Fact]
-    public void CreateEvent_WithValidData_ShouldReturnEvent()
+    public async Task CreateEvent_WithValidData_ShouldReturnEvent()
     {
         // Arrange
         var request = new CreateEventRequest("New Event", "Description", DateTime.Parse("2026-10-05 10:00:00"),
@@ -51,12 +53,12 @@ public class EventServiceTests
             eventEntity.AvailableSeats
         );
 
-        _repositoryMock.Setup(x => x.Add(eventEntity));
+        _repositoryMock.Setup(x => x.AddAsync(eventEntity, It.IsAny<CancellationToken>()));
         _mapperMock.Setup(x => x.Map<Event>(request)).Returns(eventEntity);
         _mapperMock.Setup(x => x.Map<EventDto>(eventEntity)).Returns(expectedDto);
 
         // Act
-        var result = _service.CreateEvent(request);
+        var result = await _service.CreateEventAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -68,7 +70,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_ShouldReturnAllEvents()
+    public async Task GetEvents_ShouldReturnAllEvents()
     {
         // Arrange
         var events = new List<Event>
@@ -103,11 +105,14 @@ public class EventServiceTests
                 DateTime.Parse("2026-11-05 20:10:10"), 100, 100)
         };
 
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
+        _repositoryMock.Setup(x => x.Query()).Returns(events.AsQueryable());
+        _repositoryMock
+            .Setup(x => x.ToListAsync(It.IsAny<IQueryable<Event>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IQueryable<Event> q, CancellationToken _) => q.ToList());
         _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(events)).Returns(expectedDtos);
 
         // Act
-        var result = _service.GetEvents(new EventFilter());
+        var result = await _service.GetEventsAsync(new EventFilter(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -125,7 +130,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEventById_WithValidId_ShouldReturnEvent()
+    public async Task GetEventById_WithValidId_ShouldReturnEvent()
     {
         // Arrange
         var eventId = Guid.NewGuid();
@@ -150,11 +155,11 @@ public class EventServiceTests
             eventEntity.AvailableSeats
         );
 
-        _repositoryMock.Setup(x => x.GetById(eventId)).Returns(eventEntity);
+        _repositoryMock.Setup(x => x.GetByIdAsync(eventId, It.IsAny<CancellationToken>())).ReturnsAsync(eventEntity);
         _mapperMock.Setup(x => x.Map<EventDto>(eventEntity)).Returns(expectedDto);
 
         // Act
-        var result = _service.GetEvent(eventId);
+        var result = await _service.GetEventAsync(eventId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -166,7 +171,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void UpdateEvent_WithValidIdAndData_ShouldUpdateAndReturnEvent()
+    public async Task UpdateEvent_WithValidIdAndData_ShouldUpdateAndReturnEvent()
     {
         // Arrange
         var eventId = Guid.NewGuid();
@@ -194,13 +199,13 @@ public class EventServiceTests
             100
         );
 
-        _repositoryMock.Setup(x => x.GetById(eventId)).Returns(existingEvent);
-        _repositoryMock.Setup(x => x.Update(existingEvent));
+        _repositoryMock.Setup(x => x.GetByIdAsync(eventId, It.IsAny<CancellationToken>())).ReturnsAsync(existingEvent);
+        _repositoryMock.Setup(x => x.UpdateAsync(existingEvent, It.IsAny<CancellationToken>()));
         _mapperMock.Setup(x => x.Map(updateRequest, existingEvent));
         _mapperMock.Setup(x => x.Map<EventDto>(existingEvent)).Returns(expectedDto);
 
         // Act
-        var result = _service.UpdateEvent(eventId, updateRequest);
+        var result = await _service.UpdateEventAsync(eventId, updateRequest, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -212,7 +217,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void DeleteEvent_WithValidId_ShouldRemoveEvent()
+    public async Task DeleteEvent_WithValidId_ShouldRemoveEvent()
     {
         // Arrange
         var eventId = Guid.NewGuid();
@@ -227,21 +232,22 @@ public class EventServiceTests
         };
         var events = new List<Event> { existingEvent };
 
-        _repositoryMock.Setup(x => x.GetById(eventId))
-            .Returns(() => events.FirstOrDefault(e => e.Id == eventId));
-        _repositoryMock.Setup(x => x.Remove(eventId))
-            .Callback<Guid>(id => events.RemoveAll(e => e.Id == id));
+        _repositoryMock.Setup(x => x.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => events.FirstOrDefault(e => e.Id == eventId));
+        _repositoryMock.Setup(x => x.RemoveAsync(eventId, It.IsAny<CancellationToken>()))
+            .Callback<Guid, CancellationToken>((id, _) => events.RemoveAll(e => e.Id == id))
+            .Returns(Task.CompletedTask);
 
         // Act
-        _service.DeleteEvent(eventId);
-        var deletedEvent = _repositoryMock.Object.GetById(eventId);
+        await _service.DeleteEventAsync(eventId, TestContext.Current.CancellationToken);
+        var deletedEvent = await _repositoryMock.Object.GetByIdAsync(eventId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(deletedEvent);
     }
 
     [Fact]
-    public void GetEvents_WithTitleFilter_ShouldReturnFilteredEvents()
+    public async Task GetEvents_WithTitleFilter_ShouldReturnFilteredEvents()
     {
         // Arrange
         var events = new List<Event>
@@ -291,12 +297,15 @@ public class EventServiceTests
                 DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"), 100, 100)
         };
 
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
+        _repositoryMock.Setup(x => x.Query()).Returns(events.AsQueryable());
+        _repositoryMock
+            .Setup(x => x.ToListAsync(It.IsAny<IQueryable<Event>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IQueryable<Event> q, CancellationToken _) => q.ToList());
         _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
             .Returns(expectedDtos);
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -308,7 +317,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_WithStartDateFilter_ShouldReturnEventsAfterStartDate()
+    public async Task GetEvents_WithStartDateFilter_ShouldReturnEventsAfterStartDate()
     {
         // Arrange
         var startDate = DateTime.Parse("2026-11-01");
@@ -362,12 +371,15 @@ public class EventServiceTests
                 DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"), 100, 100)
         };
 
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
+        _repositoryMock.Setup(x => x.Query()).Returns(events.AsQueryable());
+        _repositoryMock
+            .Setup(x => x.ToListAsync(It.IsAny<IQueryable<Event>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IQueryable<Event> q, CancellationToken _) => q.ToList());
         _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
             .Returns(expectedDtos);
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -378,7 +390,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_WithEndDateFilter_ShouldReturnEventsBeforeEndDate()
+    public async Task GetEvents_WithEndDateFilter_ShouldReturnEventsBeforeEndDate()
     {
         // Arrange
         var endDate = DateTime.Parse("2026-11-01");
@@ -430,12 +442,15 @@ public class EventServiceTests
                 DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"), 100, 100)
         };
 
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
+        _repositoryMock.Setup(x => x.Query()).Returns(events.AsQueryable());
+        _repositoryMock
+            .Setup(x => x.ToListAsync(It.IsAny<IQueryable<Event>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IQueryable<Event> q, CancellationToken _) => q.ToList());
         _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
             .Returns(expectedDtos);
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -446,7 +461,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_WithPagination_ShouldReturnCorrectPage()
+    public async Task GetEvents_WithPagination_ShouldReturnCorrectPage()
     {
         // Arrange
         var events = new List<Event>();
@@ -474,12 +489,15 @@ public class EventServiceTests
             new(events[5].Id, "Event 6", "Description 6", events[5].StartAt, events[5].EndAt, 100, 100)
         };
 
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
+        _repositoryMock.Setup(x => x.Query()).Returns(events.AsQueryable());
+        _repositoryMock
+            .Setup(x => x.ToListAsync(It.IsAny<IQueryable<Event>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IQueryable<Event> q, CancellationToken _) => q.ToList());
         _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
             .Returns(expectedDtos);
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -491,7 +509,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_WithCombinedFilters_ShouldReturnFilteredEvents()
+    public async Task GetEvents_WithCombinedFilters_ShouldReturnFilteredEvents()
     {
         // Arrange
         var startDate = DateTime.Parse("2026-11-01");
@@ -546,12 +564,15 @@ public class EventServiceTests
                 DateTime.Parse("2026-11-15 10:10:10"), DateTime.Parse("2026-11-15 20:10:10"), 100, 100)
         };
 
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
+        _repositoryMock.Setup(x => x.Query()).Returns(events.AsQueryable());
+        _repositoryMock
+            .Setup(x => x.ToListAsync(It.IsAny<IQueryable<Event>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IQueryable<Event> q, CancellationToken _) => q.ToList());
         _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
             .Returns(expectedDtos);
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -565,37 +586,39 @@ public class EventServiceTests
 
     // Fail scenarios
     [Fact]
-    public void GetEventById_WithNonExistentId_ShouldThrowNotFoundException()
+    public async Task GetEventById_WithNonExistentId_ShouldThrowNotFoundException()
     {
         // Arrange
         var nonExistentId = Guid.NewGuid();
-        _repositoryMock.Setup(x => x.GetById(nonExistentId)).Returns((Event)null!);
+        _repositoryMock.Setup(x => x.GetByIdAsync(nonExistentId)).ReturnsAsync((Event)null!);
 
         // Act & Assert
-        var exception = Assert.Throws<NotFoundException>(() => _service.GetEvent(nonExistentId));
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            _service.GetEventAsync(nonExistentId, TestContext.Current.CancellationToken));
         Assert.Equal($"Event with id {nonExistentId} not found", exception.Message);
 
-        _repositoryMock.Verify(x => x.GetById(nonExistentId), Times.Once);
+        _repositoryMock.Verify(x => x.GetByIdAsync(nonExistentId, It.IsAny<CancellationToken>()), Times.Once);
         _mapperMock.Verify(x => x.Map<EventDto>(It.IsAny<Event>()), Times.Never);
     }
 
     [Fact]
-    public void UpdateEvent_WithNonExistentId_ShouldThrowNotFoundException()
+    public async Task UpdateEvent_WithNonExistentId_ShouldThrowNotFoundException()
     {
         // Arrange
         var nonExistentId = Guid.NewGuid();
         var updateRequest = new UpdateEventRequest("Updated Title", "Updated Description",
             DateTime.Parse("2026-10-05 10:00:00"), DateTime.Parse("2026-10-05 18:00:00"));
 
-        _repositoryMock.Setup(x => x.GetById(nonExistentId)).Returns((Event)null!);
+        _repositoryMock.Setup(x => x.GetByIdAsync(nonExistentId, It.IsAny<CancellationToken>())).ReturnsAsync((Event)null!);
 
         // Act & Assert
-        var exception = Assert.Throws<NotFoundException>(() => _service.UpdateEvent(nonExistentId, updateRequest));
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            _service.UpdateEventAsync(nonExistentId, updateRequest, TestContext.Current.CancellationToken));
         Assert.Equal($"Event with id {nonExistentId} not found", exception.Message);
     }
 
     [Fact]
-    public void CreateEvent_WithInvalidData_ShouldThrowValidationException()
+    public async Task CreateEvent_WithInvalidData_ShouldThrowValidationException()
     {
         // Arrange
         var validator = new CreateEventValidator();
@@ -603,7 +626,7 @@ public class EventServiceTests
             DateTime.Parse("2026-10-05 18:00:00"), 100);
 
         // Act
-        var result = validator.Validate(invalidRequest);
+        var result = await validator.ValidateAsync(invalidRequest, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result.IsValid);
@@ -611,7 +634,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void CreateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
+    public async Task CreateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
     {
         // Arrange
         var validator = new CreateEventValidator();
@@ -619,7 +642,7 @@ public class EventServiceTests
             DateTime.Parse("2026-10-05 18:00:00"), DateTime.Parse("2026-10-05 10:00:00"), 100);
 
         // Act
-        var result = validator.Validate(invalidRequest);
+        var result = await validator.ValidateAsync(invalidRequest, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result.IsValid);
@@ -627,7 +650,7 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void UpdateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
+    public async Task UpdateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
     {
         // Arrange
         var validator = new UpdateEventValidator();
@@ -639,7 +662,7 @@ public class EventServiceTests
         );
 
         // Act
-        var result = validator.Validate(invalidRequest);
+        var result = await validator.ValidateAsync(invalidRequest, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result.IsValid);

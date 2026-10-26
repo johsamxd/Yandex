@@ -11,17 +11,18 @@ namespace Yandex.Application.Services;
 public class BookingService(
     IEntityRepository<Booking> bookingRepository,
     IEntityRepository<Event> eventRepository,
+    IUnitOfWork unitOfWork,
     IMapper mapper) : IBookingService
 {
-    private readonly object _bookingLock = new();
+    private readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
 
-    public async Task<BookingDto> CreateBookingAsync(Guid eventId)
+    public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100);
-        
-        lock (_bookingLock)
+        await _bookingSemaphore.WaitAsync(cancellationToken);
+
+        try
         {
-            var existingEvent = eventRepository.GetById(eventId);
+            var existingEvent = await eventRepository.GetByIdAsync(eventId, cancellationToken);
             if (existingEvent is null)
             {
                 throw new NotFoundException($"Event with id: {eventId} not found");
@@ -37,22 +38,25 @@ public class BookingService(
                 EventId = eventId,
             };
 
-            bookingRepository.Add(data);
-            eventRepository.Update(existingEvent);
+            await bookingRepository.AddAsync(data, cancellationToken);
+            await eventRepository.UpdateAsync(existingEvent, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return mapper.Map<BookingDto>(data);
         }
+        finally
+        {
+            _bookingSemaphore.Release();
+        }
     }
 
-    public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId)
+    public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
     {
-        var data = bookingRepository.GetById(bookingId);
+        var data = await bookingRepository.GetByIdAsync(bookingId, cancellationToken);
         if (data is null)
         {
             throw new NotFoundException($"Booking with id: {bookingId} not found");
         }
-
-        await Task.Delay(100);
 
         return mapper.Map<BookingDto>(data);
     }

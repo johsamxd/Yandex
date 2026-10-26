@@ -4,6 +4,6 @@ namespace Yandex.Application.Abstractions;
 
 public interface IBookingService
 {
-    Task<BookingDto> CreateBookingAsync(Guid eventId);
-    Task<BookingDto> GetBookingByIdAsync(Guid bookingId);
+    Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default);
+    Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default);
 }
