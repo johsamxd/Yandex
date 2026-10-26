@@ -14,11 +14,11 @@ public class BookingService(
     IUnitOfWork unitOfWork,
     IMapper mapper) : IBookingService
 {
-    private readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
+    private static readonly SemaphoreSlim BookingSemaphore = new(1, 1);
 
     public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        await _bookingSemaphore.WaitAsync(cancellationToken);
+        await BookingSemaphore.WaitAsync(cancellationToken);
 
         try
         {
@@ -46,7 +46,7 @@ public class BookingService(
         }
         finally
         {
-            _bookingSemaphore.Release();
+            BookingSemaphore.Release();
         }
     }
 
