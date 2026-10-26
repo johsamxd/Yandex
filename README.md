@@ -7,6 +7,7 @@ API для сервиса бронирования
 ## Используемые технологии
 * .NET 10.0
 * ASP.NET Core Web API
+* PostgreSQL + Entity Framework Core
 * Swagger / OpenAPI
 * AutoMapper
 * FluentValidation
@@ -17,15 +18,37 @@ API для сервиса бронирования
 git clone https://github.com/johsamxd/Yandex.git
 cd Yandex
 ```
+2. Настройка подключения к PostgreSQL
 
-2. Запуск приложения
+Строка подключения задаётся в `appsettings.json` (или `appsettings.Development.json`) проекта `Yandex.Web`, в секции `ConnectionStrings`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=yandex_db;Username=postgres;Password=your_password"
+  }
+}
+```
+
+3. Запуск приложения
 ```
 dotnet run --project Yandex.Web
 ```
+
+При старте:
+
+* выполняется EnsureCreated() — если БД пустая, создаются все таблицы;
+* запускается BookingBackgroundService, который каждые 5 секунд обрабатывает Pending-брони.
+
 ## Запуск тестов
 ```
 dotnet test
 ```
+Юнит-тесты не требуют PostgreSQL. Они используют InMemory-провайдер EF Core:
+
+* для каждого тестового класса создаётся уникальная in-memory база (Guid.NewGuid().ToString()), чтобы тесты не влияли друг на друга;
+* DI-контейнер собирается через ServiceCollection, в него регистрируются AppDbContext с UseInMemoryDatabase(dbName) и тестируемые сервисы;
+* для тестов на конкурентность каждый параллельный запрос выполняется в отдельном scope (IServiceScope), что эмулирует отдельный HTTP-запрос.
 
 ## API Документация
 - [Base URL](http://localhost:5128)
