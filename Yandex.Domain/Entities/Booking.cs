@@ -5,10 +5,9 @@ namespace Yandex.Domain.Entities;
 
 public class Booking : BaseEntity
 {
-    [Required]
-    public required Guid EventId { get; set; }
+    public Guid EventId { get; set; }
+    public Event Event { get; set; } = null!;
 
-    [Required]
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
 
     public DateTime? ProcessedAt { get; set; }

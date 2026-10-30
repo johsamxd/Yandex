@@ -7,7 +7,8 @@ public class CreateEventValidator : AbstractValidator<CreateEventRequest>
     public CreateEventValidator()
     {
         RuleFor(x => x.Title)
-            .NotEmpty();
+            .NotEmpty()
+            .MaximumLength(100);
 
         RuleFor(x => x.StartAt)
             .NotEmpty();

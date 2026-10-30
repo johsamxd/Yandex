@@ -5,6 +5,7 @@ using Serilog;
 using Yandex.Application;
 using Yandex.Application.Options;
 using Yandex.Infrastructure;
+using Yandex.Infrastructure.Persistence;
 using Yandex.Web.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +25,7 @@ services.Configure<BookingBackgroundOptions>(configuration.GetSection("BookingBa
 
 // Custom extensions
 services.AddApplicationServices();
-services.AddInfrastructureServices();
+services.AddInfrastructureServices(configuration);
 
 services.AddSingleton(new JsonSerializerOptions
 {
@@ -64,5 +65,11 @@ if (environment.IsDevelopment())
 }
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+} 
 
 app.Run();

@@ -9,36 +9,31 @@ using Yandex.Domain.Entities;
 
 namespace Yandex.Application.Services;
 
-public class EventService(IEntityRepository<Event> repository, IMapper mapper) : IEventService
+public class EventService(IEntityRepository<Event> repository, IUnitOfWork unitOfWork, IMapper mapper) : IEventService
 {
-    public PaginatedResult<EventDto> GetEvents(EventFilter filter)
+    public async Task<PaginatedResult<EventDto>> GetEventsAsync(EventFilter filter, CancellationToken cancellationToken = default)
     {
-        Func<Event, bool> predicate = _ => true;
+        var query = repository.Query();
 
         if (!string.IsNullOrWhiteSpace(filter.Title))
         {
             var title = filter.Title.Trim();
-            var oldPredicate = predicate;
-            predicate = e => oldPredicate(e) && e.Title.Contains(title, StringComparison.CurrentCultureIgnoreCase);
+            query = query.Where(e => e.Title.Contains(title, StringComparison.CurrentCultureIgnoreCase));
         }
 
         if (filter.From.HasValue)
         {
             var startDate = filter.From.Value.Date;
-            var oldPredicate = predicate;
-            predicate = e => oldPredicate(e) && e.StartAt >= startDate;
+            query = query.Where(e => e.StartAt >= startDate);
         }
 
         if (filter.To.HasValue)
         {
             var endDate = filter.To.Value.Date;
-            var oldPredicate = predicate;
-            predicate = e => oldPredicate(e) && e.EndAt <= endDate;
+            query = query.Where(e => e.EndAt <= endDate);
         }
 
-        var filtered = repository.GetAll()
-            .Where(predicate)
-            .ToList();
+        var filtered = await repository.ToListAsync(query, cancellationToken);
 
         var data = filtered
             .Skip((filter.Page - 1) * filter.PageSize)
@@ -52,9 +47,9 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
         return new PaginatedResult<EventDto>(items, filter.Page, data.Count, totalPages, totalCount);
     }
 
-    public EventDto GetEvent(Guid id)
+    public async Task<EventDto> GetEventAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var data = repository.GetById(id);
+        var data = await repository.GetByIdAsync(id, cancellationToken);
         if (data == null)
         {
             throw new NotFoundException($"Event with id {id} not found");
@@ -63,37 +58,40 @@ public class EventService(IEntityRepository<Event> repository, IMapper mapper) :
         return mapper.Map<EventDto>(data);
     }
 
-    public EventDto CreateEvent(CreateEventRequest request)
+    public async Task<EventDto> CreateEventAsync(CreateEventRequest request, CancellationToken cancellationToken = default)
     {
         var data = mapper.Map<Event>(request);
         data.AvailableSeats = request.TotalSeats;
-        repository.Add(data);
+        await repository.AddAsync(data, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return mapper.Map<EventDto>(data);
     }
 
-    public EventDto UpdateEvent(Guid id, UpdateEventRequest request)
+    public async Task<EventDto> UpdateEventAsync(Guid id, UpdateEventRequest request, CancellationToken cancellationToken = default)
     {
-        var data = repository.GetById(id);
+        var data = await repository.GetByIdAsync(id, cancellationToken);
         if (data == null)
         {
             throw new NotFoundException($"Event with id {id} not found");
         }
 
         mapper.Map(request, data);
-        repository.Update(data);
+        await repository.UpdateAsync(data, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return mapper.Map<EventDto>(data);
     }
 
-    public void DeleteEvent(Guid id)
+    public async Task DeleteEventAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var data = repository.GetById(id);
+        var data = await repository.GetByIdAsync(id, cancellationToken);
         if (data == null)
         {
             throw new NotFoundException($"Event with id {id} not found");
         }
 
-        repository.Remove(id);
+        await repository.RemoveAsync(id,  cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

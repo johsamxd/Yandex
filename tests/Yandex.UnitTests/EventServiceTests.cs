@@ -1,373 +1,213 @@
-using AutoMapper;
-using Moq;
+using Microsoft.Extensions.DependencyInjection;
+using Yandex.Application.Abstractions;
 using Yandex.Application.Dtos.Events;
 using Yandex.Application.Exceptions;
 using Yandex.Application.Requests.Events;
-using Yandex.Application.Services;
 using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
 
 namespace Yandex.UnitTests;
 
-public class EventServiceTests
+public class EventServiceTests : IDisposable
 {
-    private readonly Mock<IEntityRepository<Event>> _repositoryMock;
-    private readonly Mock<IMapper> _mapperMock;
-    private readonly EventService _service;
+    private readonly TestServiceProvider _provider;
+    private readonly IServiceScope _scope;
+    private readonly IEventService _service;
+    private readonly IEntityRepository<Event> _repository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public EventServiceTests()
     {
-        _repositoryMock = new Mock<IEntityRepository<Event>>();
-        _mapperMock = new Mock<IMapper>();
-        _service = new EventService(_repositoryMock.Object, _mapperMock.Object);
+        _provider = new TestServiceProvider();
+        _scope = _provider.CreateScope();
+
+        _service = _scope.ServiceProvider.GetRequiredService<IEventService>();
+        _repository = _scope.ServiceProvider.GetRequiredService<IEntityRepository<Event>>();
+        _unitOfWork = _scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
     }
 
-    // Success scenarios
-    [Fact]
-    public void CreateEvent_WithValidData_ShouldReturnEvent()
+    public void Dispose()
     {
-        // Arrange
-        var request = new CreateEventRequest("New Event", "Description", DateTime.Parse("2026-10-05 10:00:00"),
-            DateTime.Parse("2026-10-05 18:00:00"), 100);
+        _scope.Dispose();
+        _provider.Dispose();
+    }
 
-        var eventEntity = new Event
+    private async Task<Event> SeedEventAsync(
+        string title = "Test Event",
+        string description = "Test Description",
+        DateTime? startAt = null,
+        DateTime? endAt = null,
+        int totalSeats = 100)
+    {
+        var entity = new Event
         {
             Id = Guid.NewGuid(),
-            Title = request.Title,
-            Description = request.Description,
-            StartAt = request.StartAt,
-            EndAt = request.EndAt,
-            TotalSeats = 100,
-            AvailableSeats = 100
+            Title = title,
+            Description = description,
+            StartAt = startAt ?? DateTime.UtcNow.AddDays(1),
+            EndAt = endAt ?? DateTime.UtcNow.AddDays(1).AddHours(2),
+            TotalSeats = totalSeats,
+            AvailableSeats = totalSeats
         };
 
-        var expectedDto = new EventDto(
-            eventEntity.Id,
-            eventEntity.Title,
-            eventEntity.Description,
-            eventEntity.StartAt,
-            eventEntity.EndAt,
-            eventEntity.TotalSeats,
-            eventEntity.AvailableSeats
-        );
+        await _repository.AddAsync(entity, TestContext.Current.CancellationToken);
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return entity;
+    }
 
-        _repositoryMock.Setup(x => x.Add(eventEntity));
-        _mapperMock.Setup(x => x.Map<Event>(request)).Returns(eventEntity);
-        _mapperMock.Setup(x => x.Map<EventDto>(eventEntity)).Returns(expectedDto);
+    // ===== Success scenarios =====
+
+    [Fact]
+    public async Task CreateEvent_WithValidData_ShouldReturnEvent()
+    {
+        // Arrange
+        var request = new CreateEventRequest(
+            "New Event", "Description",
+            DateTime.Parse("2026-10-05 10:00:00"),
+            DateTime.Parse("2026-10-05 18:00:00"), 100);
 
         // Act
-        var result = _service.CreateEvent(request);
+        var result = await _service.CreateEventAsync(request, TestContext.Current.CancellationToken);
 
-        // Assert
+        // Assert — DTO
         Assert.NotNull(result);
-        Assert.Equal(expectedDto.Id, result.Id);
-        Assert.Equal(expectedDto.Title, result.Title);
-        Assert.Equal(expectedDto.Description, result.Description);
-        Assert.Equal(expectedDto.StartAt, result.StartAt);
-        Assert.Equal(expectedDto.EndAt, result.EndAt);
+        Assert.NotEqual(Guid.Empty, result.Id);
+        Assert.Equal(request.Title, result.Title);
+        Assert.Equal(request.Description, result.Description);
+        Assert.Equal(request.StartAt, result.StartAt);
+        Assert.Equal(request.EndAt, result.EndAt);
+        Assert.Equal(100, result.TotalSeats);
+        Assert.Equal(100, result.AvailableSeats);
+
+        // Assert — реально сохранилось в БД
+        var saved = await _repository.GetByIdAsync(result.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(saved);
+        Assert.Equal(request.Title, saved.Title);
     }
 
     [Fact]
-    public void GetEvents_ShouldReturnAllEvents()
+    public async Task GetEvents_ShouldReturnAllEvents()
     {
         // Arrange
-        var events = new List<Event>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 1",
-                Description = "Description 1",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 2",
-                Description = "Description 2",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            }
-        };
-
-        var expectedDtos = new List<EventDto>
-        {
-            new(events[0].Id, "Event 1", "Description 1", DateTime.Parse("2026-10-05 10:10:10"),
-                DateTime.Parse("2026-10-05 20:10:10"), 100, 100),
-            new(events[1].Id, "Event 2", "Description 2", DateTime.Parse("2026-11-05 10:10:10"),
-                DateTime.Parse("2026-11-05 20:10:10"), 100, 100)
-        };
-
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
-        _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(events)).Returns(expectedDtos);
+        var e1 = await SeedEventAsync("Event 1", "Description 1",
+            DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"));
+        var e2 = await SeedEventAsync("Event 2", "Description 2",
+            DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10"));
 
         // Act
-        var result = _service.GetEvents(new EventFilter());
+        var result = await _service.GetEventsAsync(new EventFilter(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         var items = result.Items.ToList();
-        Assert.Equal(expectedDtos.Count, items.Count);
-
-        for (var i = 0; i < expectedDtos.Count; i++)
-        {
-            Assert.Equal(expectedDtos[i].Id, items[i].Id);
-            Assert.Equal(expectedDtos[i].Title, items[i].Title);
-            Assert.Equal(expectedDtos[i].Description, items[i].Description);
-            Assert.Equal(expectedDtos[i].StartAt, items[i].StartAt);
-            Assert.Equal(expectedDtos[i].EndAt, items[i].EndAt);
-        }
+        Assert.Equal(2, items.Count);
+        Assert.Equal(2, result.TotalItems);
+        Assert.Contains(items, i => i.Id == e1.Id && i.Title == "Event 1");
+        Assert.Contains(items, i => i.Id == e2.Id && i.Title == "Event 2");
     }
 
     [Fact]
-    public void GetEventById_WithValidId_ShouldReturnEvent()
+    public async Task GetEventById_WithValidId_ShouldReturnEvent()
     {
         // Arrange
-        var eventId = Guid.NewGuid();
-        var eventEntity = new Event
-        {
-            Id = eventId,
-            Title = "Test Event",
-            Description = "Test Description",
-            StartAt = DateTime.Parse("2026-10-05 10:00:00"),
-            EndAt = DateTime.Parse("2026-10-05 18:00:00"),
-            TotalSeats = 100,
-            AvailableSeats = 100
-        };
-
-        var expectedDto = new EventDto(
-            eventEntity.Id,
-            eventEntity.Title,
-            eventEntity.Description,
-            eventEntity.StartAt,
-            eventEntity.EndAt,
-            eventEntity.TotalSeats,
-            eventEntity.AvailableSeats
-        );
-
-        _repositoryMock.Setup(x => x.GetById(eventId)).Returns(eventEntity);
-        _mapperMock.Setup(x => x.Map<EventDto>(eventEntity)).Returns(expectedDto);
+        var seeded = await SeedEventAsync("Test Event", "Test Description",
+            DateTime.Parse("2026-10-05 10:00:00"), DateTime.Parse("2026-10-05 18:00:00"));
 
         // Act
-        var result = _service.GetEvent(eventId);
+        var result = await _service.GetEventAsync(seeded.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(expectedDto.Id, result.Id);
-        Assert.Equal(expectedDto.Title, result.Title);
-        Assert.Equal(expectedDto.Description, result.Description);
-        Assert.Equal(expectedDto.StartAt, result.StartAt);
-        Assert.Equal(expectedDto.EndAt, result.EndAt);
+        Assert.Equal(seeded.Id, result.Id);
+        Assert.Equal("Test Event", result.Title);
+        Assert.Equal("Test Description", result.Description);
+        Assert.Equal(seeded.StartAt, result.StartAt);
+        Assert.Equal(seeded.EndAt, result.EndAt);
     }
 
     [Fact]
-    public void UpdateEvent_WithValidIdAndData_ShouldUpdateAndReturnEvent()
+    public async Task UpdateEvent_WithValidIdAndData_ShouldUpdateAndReturnEvent()
     {
         // Arrange
-        var eventId = Guid.NewGuid();
-        var existingEvent = new Event
-        {
-            Id = eventId,
-            Title = "Old Title",
-            Description = "Old Description",
-            StartAt = DateTime.Parse("2026-10-05 10:00:00"),
-            EndAt = DateTime.Parse("2026-10-05 18:00:00"),
-            TotalSeats = 100,
-            AvailableSeats = 100
-        };
-
-        var updateRequest = new UpdateEventRequest("Updated Title", "Updated Description",
-            DateTime.Parse("2026-11-05 10:00:00"), DateTime.Parse("2026-11-05 18:00:00"));
-
-        var expectedDto = new EventDto(
-            eventId,
-            updateRequest.Title,
-            updateRequest.Description,
-            updateRequest.StartAt,
-            updateRequest.EndAt,
-            100,
-            100
-        );
-
-        _repositoryMock.Setup(x => x.GetById(eventId)).Returns(existingEvent);
-        _repositoryMock.Setup(x => x.Update(existingEvent));
-        _mapperMock.Setup(x => x.Map(updateRequest, existingEvent));
-        _mapperMock.Setup(x => x.Map<EventDto>(existingEvent)).Returns(expectedDto);
+        var seeded = await SeedEventAsync("Old Title", "Old Description");
+        var updateRequest = new UpdateEventRequest(
+            "Updated Title", "Updated Description",
+            DateTime.Parse("2026-11-05 10:00:00"),
+            DateTime.Parse("2026-11-05 18:00:00"));
 
         // Act
-        var result = _service.UpdateEvent(eventId, updateRequest);
+        var result = await _service.UpdateEventAsync(seeded.Id, updateRequest, TestContext.Current.CancellationToken);
 
-        // Assert
+        // Assert — DTO
         Assert.NotNull(result);
-        Assert.Equal(expectedDto.Id, result.Id);
-        Assert.Equal(expectedDto.Title, result.Title);
-        Assert.Equal(expectedDto.Description, result.Description);
-        Assert.Equal(expectedDto.StartAt, result.StartAt);
-        Assert.Equal(expectedDto.EndAt, result.EndAt);
+        Assert.Equal(seeded.Id, result.Id);
+        Assert.Equal("Updated Title", result.Title);
+        Assert.Equal("Updated Description", result.Description);
+        Assert.Equal(updateRequest.StartAt, result.StartAt);
+        Assert.Equal(updateRequest.EndAt, result.EndAt);
+
+        // Assert — реально в БД
+        var fromDb = await _repository.GetByIdAsync(seeded.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(fromDb);
+        Assert.Equal("Updated Title", fromDb.Title);
+        Assert.Equal("Updated Description", fromDb.Description);
     }
 
     [Fact]
-    public void DeleteEvent_WithValidId_ShouldRemoveEvent()
+    public async Task DeleteEvent_WithValidId_ShouldRemoveEvent()
     {
         // Arrange
-        var eventId = Guid.NewGuid();
-        var existingEvent = new Event
-        {
-            Id = eventId,
-            Title = "Test Event",
-            StartAt = DateTime.Parse("2026-11-05 10:00:00"),
-            EndAt = DateTime.Parse("2026-11-05 18:00:00"),
-            TotalSeats = 100,
-            AvailableSeats = 100
-        };
-        var events = new List<Event> { existingEvent };
-
-        _repositoryMock.Setup(x => x.GetById(eventId))
-            .Returns(() => events.FirstOrDefault(e => e.Id == eventId));
-        _repositoryMock.Setup(x => x.Remove(eventId))
-            .Callback<Guid>(id => events.RemoveAll(e => e.Id == id));
+        var seeded = await SeedEventAsync("To Delete");
 
         // Act
-        _service.DeleteEvent(eventId);
-        var deletedEvent = _repositoryMock.Object.GetById(eventId);
+        await _service.DeleteEventAsync(seeded.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Null(deletedEvent);
+        var deleted = await _repository.GetByIdAsync(seeded.Id, TestContext.Current.CancellationToken);
+        Assert.Null(deleted);
     }
 
     [Fact]
-    public void GetEvents_WithTitleFilter_ShouldReturnFilteredEvents()
+    public async Task GetEvents_WithTitleFilter_ShouldReturnFilteredEvents()
     {
         // Arrange
-        var events = new List<Event>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Conference 2026",
-                Description = "Tech conference",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Workshop C#",
-                Description = "C# workshop",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Meeting",
-                Description = "Team meeting",
-                StartAt = DateTime.Parse("2026-12-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-12-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            }
-        };
+        await SeedEventAsync("Conference 2026", "Tech conference",
+            DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"));
+        await SeedEventAsync("Workshop C#", "C# workshop",
+            DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10"));
+        await SeedEventAsync("Meeting", "Team meeting",
+            DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"));
 
-        var filter = new EventFilter
-        {
-            Title = "Conference",
-            Page = 1,
-            PageSize = 10
-        };
-
-        var expectedDtos = new List<EventDto>
-        {
-            new(events[0].Id, "Conference 2026", "Tech conference",
-                DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"), 100, 100)
-        };
-
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
-        _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
-            .Returns(expectedDtos);
+        var filter = new EventFilter { Title = "Conference", Page = 1, PageSize = 10 };
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         var items = result.Items.ToList();
         Assert.Single(items);
         Assert.Equal(1, result.TotalItems);
-        Assert.Equal("Conference 2026", items.First().Title);
-        Assert.Equal("Tech conference", items.First().Description);
+        Assert.Equal("Conference 2026", items[0].Title);
     }
 
     [Fact]
-    public void GetEvents_WithStartDateFilter_ShouldReturnEventsAfterStartDate()
+    public async Task GetEvents_WithStartDateFilter_ShouldReturnEventsAfterStartDate()
     {
         // Arrange
         var startDate = DateTime.Parse("2026-11-01");
 
-        var events = new List<Event>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 1",
-                Description = "Description 1",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 2",
-                Description = "Description 2",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 3",
-                Description = "Description 3",
-                StartAt = DateTime.Parse("2026-12-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-12-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            }
-        };
+        await SeedEventAsync("Event 1", "Description 1",
+            DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"));
+        await SeedEventAsync("Event 2", "Description 2",
+            DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10"));
+        await SeedEventAsync("Event 3", "Description 3",
+            DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"));
 
-        var filter = new EventFilter
-        {
-            From = startDate,
-            Page = 1,
-            PageSize = 10
-        };
-
-        var expectedDtos = new List<EventDto>
-        {
-            new(events[1].Id, "Event 2", "Description 2",
-                DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10"), 100, 100),
-            new(events[2].Id, "Event 3", "Description 3",
-                DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"), 100, 100)
-        };
-
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
-        _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
-            .Returns(expectedDtos);
+        var filter = new EventFilter { From = startDate, Page = 1, PageSize = 10 };
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -378,64 +218,22 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_WithEndDateFilter_ShouldReturnEventsBeforeEndDate()
+    public async Task GetEvents_WithEndDateFilter_ShouldReturnEventsBeforeEndDate()
     {
         // Arrange
         var endDate = DateTime.Parse("2026-11-01");
 
-        var events = new List<Event>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 1",
-                Description = "Description 1",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 2",
-                Description = "Description 2",
-                StartAt = DateTime.Parse("2026-11-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-11-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Event 3",
-                Description = "Description 3",
-                StartAt = DateTime.Parse("2026-12-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-12-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            }
-        };
+        await SeedEventAsync("Event 1", "Description 1",
+            DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"));
+        await SeedEventAsync("Event 2", "Description 2",
+            DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10"));
+        await SeedEventAsync("Event 3", "Description 3",
+            DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"));
 
-        var filter = new EventFilter
-        {
-            To = endDate,
-            Page = 1,
-            PageSize = 10
-        };
-
-        var expectedDtos = new List<EventDto>
-        {
-            new(events[0].Id, "Event 1", "Description 1",
-                DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"), 100, 100)
-        };
-
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
-        _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
-            .Returns(expectedDtos);
+        var filter = new EventFilter { To = endDate, Page = 1, PageSize = 10 };
 
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -446,40 +244,19 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_WithPagination_ShouldReturnCorrectPage()
+    public async Task GetEvents_WithPagination_ShouldReturnCorrectPage()
     {
         // Arrange
-        var events = new List<Event>();
-
         for (var i = 1; i <= 10; i++)
         {
-            events.Add(new Event
-            {
-                Id = Guid.NewGuid(),
-                Title = $"Event {i}",
-                Description = $"Description {i}",
-                StartAt = DateTime.Now.AddDays(i),
-                EndAt = DateTime.Now.AddDays(i).AddHours(2),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            });
+            await SeedEventAsync($"Event {i}", $"Description {i}",
+                DateTime.UtcNow.AddDays(i), DateTime.UtcNow.AddDays(i).AddHours(2));
         }
 
         var filter = new EventFilter { Page = 2, PageSize = 3 };
 
-        var expectedDtos = new List<EventDto>
-        {
-            new(events[3].Id, "Event 4", "Description 4", events[3].StartAt, events[3].EndAt, 100, 100),
-            new(events[4].Id, "Event 5", "Description 5", events[4].StartAt, events[4].EndAt, 100, 100),
-            new(events[5].Id, "Event 6", "Description 6", events[5].StartAt, events[5].EndAt, 100, 100)
-        };
-
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
-        _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
-            .Returns(expectedDtos);
-
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -491,45 +268,18 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetEvents_WithCombinedFilters_ShouldReturnFilteredEvents()
+    public async Task GetEvents_WithCombinedFilters_ShouldReturnFilteredEvents()
     {
         // Arrange
         var startDate = DateTime.Parse("2026-11-01");
         var endDate = DateTime.Parse("2026-11-30");
 
-        var events = new List<Event>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Conference 2026",
-                Description = "Tech conference",
-                StartAt = DateTime.Parse("2026-10-05 10:10:10"),
-                EndAt = DateTime.Parse("2026-10-05 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Conference 2026",
-                Description = "Tech conference",
-                StartAt = DateTime.Parse("2026-11-15 10:10:10"),
-                EndAt = DateTime.Parse("2026-11-15 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Workshop C#",
-                Description = "C# workshop",
-                StartAt = DateTime.Parse("2026-11-20 10:10:10"),
-                EndAt = DateTime.Parse("2026-11-20 20:10:10"),
-                TotalSeats = 100,
-                AvailableSeats = 100
-            }
-        };
+        await SeedEventAsync("Conference 2026", "Tech conference",
+            DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"));
+        await SeedEventAsync("Conference 2026", "Tech conference",
+            DateTime.Parse("2026-11-15 10:10:10"), DateTime.Parse("2026-11-15 20:10:10"));
+        await SeedEventAsync("Workshop C#", "C# workshop",
+            DateTime.Parse("2026-11-20 10:10:10"), DateTime.Parse("2026-11-20 20:10:10"));
 
         var filter = new EventFilter
         {
@@ -540,108 +290,90 @@ public class EventServiceTests
             PageSize = 10
         };
 
-        var expectedDtos = new List<EventDto>
-        {
-            new(events[1].Id, "Conference 2026", "Tech conference",
-                DateTime.Parse("2026-11-15 10:10:10"), DateTime.Parse("2026-11-15 20:10:10"), 100, 100)
-        };
-
-        _repositoryMock.Setup(x => x.GetAll()).Returns(events);
-        _mapperMock.Setup(x => x.Map<IEnumerable<EventDto>>(It.IsAny<IEnumerable<Event>>()))
-            .Returns(expectedDtos);
-
         // Act
-        var result = _service.GetEvents(filter);
+        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         var items = result.Items.ToList();
         Assert.Single(items);
         Assert.Equal(1, result.TotalItems);
-        Assert.Equal("Conference 2026", items.First().Title);
-        Assert.True(items.First().StartAt >= startDate.Date);
-        Assert.True(items.First().EndAt <= endDate.Date);
+        Assert.Equal("Conference 2026", items[0].Title);
+        Assert.True(items[0].StartAt >= startDate.Date);
+        Assert.True(items[0].EndAt <= endDate.Date);
     }
 
-    // Fail scenarios
-    [Fact]
-    public void GetEventById_WithNonExistentId_ShouldThrowNotFoundException()
-    {
-        // Arrange
-        var nonExistentId = Guid.NewGuid();
-        _repositoryMock.Setup(x => x.GetById(nonExistentId)).Returns((Event)null!);
-
-        // Act & Assert
-        var exception = Assert.Throws<NotFoundException>(() => _service.GetEvent(nonExistentId));
-        Assert.Equal($"Event with id {nonExistentId} not found", exception.Message);
-
-        _repositoryMock.Verify(x => x.GetById(nonExistentId), Times.Once);
-        _mapperMock.Verify(x => x.Map<EventDto>(It.IsAny<Event>()), Times.Never);
-    }
+    // ===== Fail scenarios =====
 
     [Fact]
-    public void UpdateEvent_WithNonExistentId_ShouldThrowNotFoundException()
+    public async Task GetEventById_WithNonExistentId_ShouldThrowNotFoundException()
     {
-        // Arrange
+        // Arrange — БД пустая, ничего не сеем
         var nonExistentId = Guid.NewGuid();
-        var updateRequest = new UpdateEventRequest("Updated Title", "Updated Description",
-            DateTime.Parse("2026-10-05 10:00:00"), DateTime.Parse("2026-10-05 18:00:00"));
-
-        _repositoryMock.Setup(x => x.GetById(nonExistentId)).Returns((Event)null!);
 
         // Act & Assert
-        var exception = Assert.Throws<NotFoundException>(() => _service.UpdateEvent(nonExistentId, updateRequest));
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            _service.GetEventAsync(nonExistentId, TestContext.Current.CancellationToken));
         Assert.Equal($"Event with id {nonExistentId} not found", exception.Message);
     }
 
     [Fact]
-    public void CreateEvent_WithInvalidData_ShouldThrowValidationException()
+    public async Task UpdateEvent_WithNonExistentId_ShouldThrowNotFoundException()
     {
         // Arrange
+        var nonExistentId = Guid.NewGuid();
+        var updateRequest = new UpdateEventRequest(
+            "Updated Title", "Updated Description",
+            DateTime.Parse("2026-10-05 10:00:00"),
+            DateTime.Parse("2026-10-05 18:00:00"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            _service.UpdateEventAsync(nonExistentId, updateRequest, TestContext.Current.CancellationToken));
+        Assert.Equal($"Event with id {nonExistentId} not found", exception.Message);
+    }
+
+    // ===== Валидаторы (не трогают БД — оставлены как есть) =====
+
+    [Fact]
+    public async Task CreateEvent_WithInvalidData_ShouldThrowValidationException()
+    {
         var validator = new CreateEventValidator();
-        var invalidRequest = new CreateEventRequest("", "Description", DateTime.Parse("2026-10-05 10:00:00"),
+        var invalidRequest = new CreateEventRequest("", "Description",
+            DateTime.Parse("2026-10-05 10:00:00"),
             DateTime.Parse("2026-10-05 18:00:00"), 100);
 
-        // Act
-        var result = validator.Validate(invalidRequest);
+        var result = await validator.ValidateAsync(invalidRequest, TestContext.Current.CancellationToken);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName == "Title");
     }
 
     [Fact]
-    public void CreateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
+    public async Task CreateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
     {
-        // Arrange
         var validator = new CreateEventValidator();
         var invalidRequest = new CreateEventRequest("Invalid Event", "Description",
-            DateTime.Parse("2026-10-05 18:00:00"), DateTime.Parse("2026-10-05 10:00:00"), 100);
+            DateTime.Parse("2026-10-05 18:00:00"),
+            DateTime.Parse("2026-10-05 10:00:00"), 100);
 
-        // Act
-        var result = validator.Validate(invalidRequest);
+        var result = await validator.ValidateAsync(invalidRequest, TestContext.Current.CancellationToken);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName is "StartAt" or "EndAt");
     }
 
     [Fact]
-    public void UpdateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
+    public async Task UpdateEvent_WithEndDateEarlierThanStartDate_ShouldThrowValidationException()
     {
-        // Arrange
         var validator = new UpdateEventValidator();
         var invalidRequest = new UpdateEventRequest(
-            "Updated Event",
-            "Updated Description",
+            "Updated Event", "Updated Description",
             DateTime.Parse("2026-10-05 18:00:00"),
-            DateTime.Parse("2026-10-05 10:00:00")
-        );
+            DateTime.Parse("2026-10-05 10:00:00"));
 
-        // Act
-        var result = validator.Validate(invalidRequest);
+        var result = await validator.ValidateAsync(invalidRequest, TestContext.Current.CancellationToken);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName is "StartAt" or "EndAt");
     }

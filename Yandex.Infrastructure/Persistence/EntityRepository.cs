@@ -1,35 +1,52 @@
-﻿using Yandex.Domain.Abstractions;
+﻿using Microsoft.EntityFrameworkCore;
+using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
 
 namespace Yandex.Infrastructure.Persistence;
 
-public class EntityRepository<T>(LocalDatabase database) : IEntityRepository<T>
+public class EntityRepository<T>(AppDbContext context) : IEntityRepository<T>
     where T : BaseEntity
 {
-    private readonly List<T> _items = database.GetCollection<T>();
+    private readonly DbSet<T> _set = context.Set<T>();
 
-    public T? GetById(Guid id) => _items.FirstOrDefault(x => x.Id == id);
+    public IQueryable<T> Query() => _set.AsQueryable();
 
-    public IEnumerable<T> GetAll() => _items.AsEnumerable();
+    public async Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await _set.FindAsync([id], cancellationToken);
 
-    public void Add(T entity) => _items.Add(entity);
+    public async Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await _set.AsNoTracking().ToListAsync(cancellationToken);
 
-    public void Update(T entity)
+    public async Task AddAsync(T entity, CancellationToken cancellationToken = default) =>
+        await _set.AddAsync(entity, cancellationToken);
+
+    public async Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
     {
-        var existing = _items.FirstOrDefault(x => x.Id == entity.Id);
-        if (existing == null)
+        var existing = await _set.FindAsync([entity.Id], cancellationToken);
+        if (existing is null)
+        {
             throw new KeyNotFoundException($"Entity with id {entity.Id} not found");
+        }
 
-        var index = _items.IndexOf(existing);
-        _items[index] = entity;
+        context.Entry(existing).CurrentValues.SetValues(entity);
     }
 
-    public void Remove(Guid id)
+    public async Task RemoveAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var existing = _items.FirstOrDefault(x => x.Id == id);
-        if (existing == null)
+        var existing = await _set.FindAsync([id], cancellationToken);
+        if (existing is null)
+        {
             throw new KeyNotFoundException($"Entity with id {id} not found");
+        }
 
-        _items.Remove(existing);
+        _set.Remove(existing);
     }
+
+    public Task<List<T>> ToListAsync(
+        IQueryable<T> queryable,
+        CancellationToken cancellationToken = default)
+    {
+        return queryable.ToListAsync(cancellationToken);
+    }
+
 }
