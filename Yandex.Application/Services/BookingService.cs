@@ -9,8 +9,8 @@ using Yandex.Domain.Entities;
 namespace Yandex.Application.Services;
 
 public class BookingService(
-    IEntityRepository<Booking> bookingRepository,
-    IEntityRepository<Event> eventRepository,
+    IBookingRepository bookingRepository,
+    IEventRepository eventRepository,
     IUnitOfWork unitOfWork,
     IMapper mapper) : IBookingService
 {

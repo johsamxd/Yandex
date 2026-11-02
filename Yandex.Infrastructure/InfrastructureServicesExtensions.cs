@@ -3,16 +3,20 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Yandex.Domain.Abstractions;
 using Yandex.Infrastructure.Persistence;
+using Yandex.Infrastructure.Persistence.Repositories;
 
 namespace Yandex.Infrastructure;
 
 public static class InfrastructureServicesExtensions
 {
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services,
+        IConfiguration configuration)
     {
-        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
-        services.AddScoped(typeof(IEntityRepository<>), typeof(EntityRepository<>));
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
 
         return services;
     }

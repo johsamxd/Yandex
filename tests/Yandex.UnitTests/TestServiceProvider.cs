@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Yandex.Application;
 using Yandex.Domain.Abstractions;
 using Yandex.Infrastructure.Persistence;
+using Yandex.Infrastructure.Persistence.Repositories;
 
 namespace Yandex.UnitTests;
 
@@ -20,7 +21,8 @@ internal sealed class TestServiceProvider : IDisposable
         // Infrastructure
         services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(dbName));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped(typeof(IEntityRepository<>), typeof(EntityRepository<>));
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
 
         // Application
         services.AddApplicationServices();

@@ -13,7 +13,7 @@ public class EventServiceTests : IDisposable
     private readonly TestServiceProvider _provider;
     private readonly IServiceScope _scope;
     private readonly IEventService _service;
-    private readonly IEntityRepository<Event> _repository;
+    private readonly IEventRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
 
     public EventServiceTests()
@@ -22,7 +22,7 @@ public class EventServiceTests : IDisposable
         _scope = _provider.CreateScope();
 
         _service = _scope.ServiceProvider.GetRequiredService<IEventService>();
-        _repository = _scope.ServiceProvider.GetRequiredService<IEntityRepository<Event>>();
+        _repository = _scope.ServiceProvider.GetRequiredService<IEventRepository>();
         _unitOfWork = _scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
     }
 

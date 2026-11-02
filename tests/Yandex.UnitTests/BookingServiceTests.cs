@@ -15,8 +15,8 @@ public class BookingServiceTests : IDisposable
     private readonly TestServiceProvider _provider;
     private readonly IServiceScope _scope;
     private readonly IBookingService _service;
-    private readonly IEntityRepository<Booking> _bookingRepository;
-    private readonly IEntityRepository<Event> _eventRepository;
+    private readonly IBookingRepository _bookingRepository;
+    private readonly IEventRepository _eventRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public BookingServiceTests()
@@ -25,8 +25,8 @@ public class BookingServiceTests : IDisposable
         _scope = _provider.CreateScope();
 
         _service = _scope.ServiceProvider.GetRequiredService<IBookingService>();
-        _bookingRepository = _scope.ServiceProvider.GetRequiredService<IEntityRepository<Booking>>();
-        _eventRepository = _scope.ServiceProvider.GetRequiredService<IEntityRepository<Event>>();
+        _bookingRepository = _scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+        _eventRepository = _scope.ServiceProvider.GetRequiredService<IEventRepository>();
         _unitOfWork = _scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
     }
 
@@ -97,7 +97,10 @@ public class BookingServiceTests : IDisposable
             r => Assert.Equal(BookingStatus.Pending, r.Status));
 
         // Три брони реально в БД
-        var bookings = await _bookingRepository.GetAllAsync(TestContext.Current.CancellationToken);
+        var bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(3, bookings.Count);
     }
 
@@ -171,7 +174,10 @@ public class BookingServiceTests : IDisposable
         Assert.Equal($"Event with id: {nonExistentEventId} not found", exception.Message);
 
         // Броней в БД нет
-        var bookings = await _bookingRepository.GetAllAsync(TestContext.Current.CancellationToken);
+        var bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
         Assert.Empty(bookings);
     }
 
@@ -238,7 +244,10 @@ public class BookingServiceTests : IDisposable
         Assert.NotNull(fromDb);
         Assert.Equal(0, fromDb.AvailableSeats);
 
-        var bookings = await _bookingRepository.GetAllAsync(TestContext.Current.CancellationToken);
+        var bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(totalSeats, bookings.Count);
     }
 
@@ -260,7 +269,10 @@ public class BookingServiceTests : IDisposable
         Assert.NotNull(fromDb);
         Assert.Equal(0, fromDb.AvailableSeats);
 
-        var bookings = await _bookingRepository.GetAllAsync(TestContext.Current.CancellationToken);
+        var bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(totalSeats, bookings.Count);
     }
 
@@ -274,7 +286,10 @@ public class BookingServiceTests : IDisposable
         await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
             _service.CreateBookingAsync(seededEvent.Id, TestContext.Current.CancellationToken));
 
-        var bookings = await _bookingRepository.GetAllAsync(TestContext.Current.CancellationToken);
+        var bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
         Assert.Empty(bookings);
     }
 
@@ -418,13 +433,16 @@ public class BookingServiceTests : IDisposable
         Assert.Equal(concurrentRequests - totalSeats, noSeatsCount);
 
         using var assertScope = _provider.CreateScope();
-        var eventRepo = assertScope.ServiceProvider.GetRequiredService<IEntityRepository<Event>>();
+        var eventRepo = assertScope.ServiceProvider.GetRequiredService<IEventRepository>();
         var finalEvent = await eventRepo.GetByIdAsync(eventId, TestContext.Current.CancellationToken);
         Assert.NotNull(finalEvent);
         Assert.Equal(0, finalEvent.AvailableSeats);
 
-        var bookingRepo = assertScope.ServiceProvider.GetRequiredService<IEntityRepository<Booking>>();
-        var bookings = await bookingRepo.GetAllAsync(TestContext.Current.CancellationToken);
+        var bookingRepo = assertScope.ServiceProvider.GetRequiredService<IBookingRepository>();
+        var bookings = await bookingRepo.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(totalSeats, bookings.Count);
     }
 
@@ -457,7 +475,7 @@ public class BookingServiceTests : IDisposable
             createdBookings.Select(b => b.Id).Distinct().Count());
 
         using var assertScope = _provider.CreateScope();
-        var eventRepo = assertScope.ServiceProvider.GetRequiredService<IEntityRepository<Event>>();
+        var eventRepo = assertScope.ServiceProvider.GetRequiredService<IEventRepository>();
         var finalEvent = await eventRepo.GetByIdAsync(eventId, TestContext.Current.CancellationToken);
         Assert.NotNull(finalEvent);
         Assert.Equal(0, finalEvent.AvailableSeats);
