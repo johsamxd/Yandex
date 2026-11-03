@@ -93,7 +93,7 @@ public class BookingServiceTests : IDisposable
         Assert.NotEqual(result1.Id, result2.Id);
         Assert.NotEqual(result1.Id, result3.Id);
         Assert.NotEqual(result2.Id, result3.Id);
-        Assert.All(new[] { result1, result2, result3 },
+        Assert.All([result1, result2, result3],
             r => Assert.Equal(BookingStatus.Pending, r.Status));
 
         // Три брони реально в БД
@@ -410,7 +410,7 @@ public class BookingServiceTests : IDisposable
                 try
                 {
                     await bookingService.CreateBookingAsync(eventId);
-                    return (Success: true, Exception: null);
+                    return (Success: true, Exception: (Exception?)null);
                 }
                 catch (Exception ex)
                 {

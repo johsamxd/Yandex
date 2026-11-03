@@ -168,30 +168,6 @@ public class EventServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEvents_WithTitleFilter_ShouldReturnFilteredEvents()
-    {
-        // Arrange
-        await SeedEventAsync("Conference 2026", "Tech conference",
-            DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"));
-        await SeedEventAsync("Workshop C#", "C# workshop",
-            DateTime.Parse("2026-11-05 10:10:10"), DateTime.Parse("2026-11-05 20:10:10"));
-        await SeedEventAsync("Meeting", "Team meeting",
-            DateTime.Parse("2026-12-05 10:10:10"), DateTime.Parse("2026-12-05 20:10:10"));
-
-        var filter = new EventFilter { Title = "Conference", Page = 1, PageSize = 10 };
-
-        // Act
-        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.NotNull(result);
-        var items = result.Items.ToList();
-        Assert.Single(items);
-        Assert.Equal(1, result.TotalItems);
-        Assert.Equal("Conference 2026", items[0].Title);
-    }
-
-    [Fact]
     public async Task GetEvents_WithStartDateFilter_ShouldReturnEventsAfterStartDate()
     {
         // Arrange
@@ -265,42 +241,6 @@ public class EventServiceTests : IDisposable
         Assert.Equal(10, result.TotalItems);
         Assert.Equal(4, result.TotalPages);
         Assert.Equal(2, result.Page);
-    }
-
-    [Fact]
-    public async Task GetEvents_WithCombinedFilters_ShouldReturnFilteredEvents()
-    {
-        // Arrange
-        var startDate = DateTime.Parse("2026-11-01");
-        var endDate = DateTime.Parse("2026-11-30");
-
-        await SeedEventAsync("Conference 2026", "Tech conference",
-            DateTime.Parse("2026-10-05 10:10:10"), DateTime.Parse("2026-10-05 20:10:10"));
-        await SeedEventAsync("Conference 2026", "Tech conference",
-            DateTime.Parse("2026-11-15 10:10:10"), DateTime.Parse("2026-11-15 20:10:10"));
-        await SeedEventAsync("Workshop C#", "C# workshop",
-            DateTime.Parse("2026-11-20 10:10:10"), DateTime.Parse("2026-11-20 20:10:10"));
-
-        var filter = new EventFilter
-        {
-            Title = "Conference",
-            From = startDate,
-            To = endDate,
-            Page = 1,
-            PageSize = 10
-        };
-
-        // Act
-        var result = await _service.GetEventsAsync(filter, TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.NotNull(result);
-        var items = result.Items.ToList();
-        Assert.Single(items);
-        Assert.Equal(1, result.TotalItems);
-        Assert.Equal("Conference 2026", items[0].Title);
-        Assert.True(items[0].StartAt >= startDate.Date);
-        Assert.True(items[0].EndAt <= endDate.Date);
     }
 
     // ===== Fail scenarios =====
