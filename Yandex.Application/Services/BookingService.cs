@@ -39,7 +39,6 @@ public class BookingService(
             };
 
             await bookingRepository.AddAsync(data, cancellationToken);
-            await eventRepository.UpdateAsync(existingEvent, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return mapper.Map<BookingDto>(data);

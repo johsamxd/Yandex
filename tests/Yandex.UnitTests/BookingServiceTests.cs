@@ -374,7 +374,6 @@ public class BookingServiceTests : IDisposable
 
         // Освобождаем место (имитация Reject + ReleaseSeats)
         afterFirst.ReleaseSeats();
-        await _eventRepository.UpdateAsync(afterFirst, TestContext.Current.CancellationToken);
         await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

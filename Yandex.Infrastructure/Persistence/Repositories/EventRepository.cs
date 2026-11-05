@@ -17,6 +17,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
     {
         return await BuildQuery(filter)
             .OrderBy(e => e.StartAt)
+            .ThenBy(e => e.Id) 
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .AsNoTracking()
@@ -28,17 +29,6 @@ public class EventRepository(AppDbContext context) : IEventRepository
 
     public async Task AddAsync(Event entity, CancellationToken cancellationToken = default) =>
         await _set.AddAsync(entity, cancellationToken);
-
-    public async Task UpdateAsync(Event entity, CancellationToken cancellationToken = default)
-    {
-        var existing = await _set.FindAsync([entity.Id], cancellationToken);
-        if (existing is null)
-        {
-            throw new KeyNotFoundException($"Entity with id {entity.Id} not found");
-        }
-
-        context.Entry(existing).CurrentValues.SetValues(entity);
-    }
 
     public async Task RemoveAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -63,13 +53,13 @@ public class EventRepository(AppDbContext context) : IEventRepository
 
         if (filter.From.HasValue)
         {
-            var startDate = filter.From.Value.Date;
+            var startDate = DateTime.SpecifyKind(filter.From.Value.Date, DateTimeKind.Utc);
             query = query.Where(e => e.StartAt >= startDate);
         }
 
         if (filter.To.HasValue)
         {
-            var endDate = filter.To.Value.Date;
+            var endDate = DateTime.SpecifyKind(filter.To.Value.Date.AddDays(1), DateTimeKind.Utc);
             query = query.Where(e => e.EndAt <= endDate);
         }
 

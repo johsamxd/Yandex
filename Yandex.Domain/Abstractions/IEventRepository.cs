@@ -13,7 +13,5 @@ public interface IEventRepository
 
     Task AddAsync(Event entity, CancellationToken cancellationToken = default);
 
-    Task UpdateAsync(Event entity, CancellationToken cancellationToken = default);
-
     Task RemoveAsync(Guid id, CancellationToken cancellationToken = default);
 }

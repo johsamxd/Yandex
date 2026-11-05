@@ -41,19 +41,16 @@ cd Yandex
 
 3. Применение миграций
 
-Схема базы данных управляется миграциями EF Core (а не EnsureCreated()). Перед первым запуском приложения примените
-миграции к базе:
-
-```
-dotnet ef database update --project Yandex.Infrastructure\Yandex.Infrastructure.csproj --startup-project Yandex.Web\Yandex.Web.csproj --context Yandex.Infrastructure.Persistence.AppDbContext
-```
+Схема базы данных управляется миграциями EF Core (а не EnsureCreated()).
 
 Если миграций ещё нет (новая копия репозитория без папки Migrations), создайте начальную миграцию:
+
 ```
 dotnet ef migrations add --project Yandex.Infrastructure\Yandex.Infrastructure.csproj --startup-project Yandex.Web\Yandex.Web.csproj --context Yandex.Infrastructure.Persistence.AppDbContext --configuration Debug Initial --output-dir Persistence/Migrations
 ```
 
 Для выполнения команд dotnet ef установите инструмент, если он ещё не установлен:
+
 ```
 dotnet tool install --global dotnet-ef
 ```
@@ -227,18 +224,86 @@ Location: /bookings/7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
 
 ## Примитивы синхронизации
 
-В проекте используются два примитива синхронизации под разные задачи. В `BookingService.CreateBookingAsync` стоит один
-общий lock (_bookingLock) — он сериализует проверку и резервирование места для одного события и защищает от овербукинга,
-когда несколько параллельных запросов одновременно пытаются занять последнее место; внутри лока нет `await`, поэтому
-`lock` здесь проще и быстрее, чем `SemaphoreSlim`, но он работает только в пределах одного процесса, и при нескольких
-инстансах приложения понадобится транзакция в БД (`UPDATE ... WHERE AvailableSeats > 0`). В `BookingBackgroundService`
-стоит `SemaphoreSlim(3, 3)` — он ограничивает параллелизм фоновой обработки броней тремя одновременно, чтобы не
-перегружать внешнюю систему и не создавать лишние `DbContext`, и здесь именно семафор, а не `lock`, потому что внутри
-критической секции есть `await`; `WaitAsync` вызывается до `try`, `Release` — в `finally`, чтобы счётчик не «протекал»
-при отмене. Дополнительно каждая бронь обрабатывается в отдельном `scope` (`Task.WhenAll` + `CreateScope` на задачу),
-потому что `DbContext` не потокобезопасен, а семафор `(3,3)` ограничивает число одновременных контекстов.
+В проекте используются два примитива синхронизации под разные задачи.
+
+**`BookingService.CreateBookingAsync` — `SemaphoreSlim(1, 1)`**
+
+Статический `SemaphoreSlim BookingSemaphore = new(1, 1)` сериализует проверку и резервирование места: только один
+параллельный запрос одновременно проходит критическую секцию (чтение события → `TryReserveSeats` → `AddAsync` →
+`SaveChangesAsync`). Это защищает от овербукинга, когда несколько параллельных запросов одновременно пытаются занять
+последнее место.
+
+Внутри критической секции есть `await SaveChangesAsync(...)`, поэтому используется `SemaphoreSlim`, а не `lock` (в C#
+`lock` запрещает `await` внутри блока). `WaitAsync` вызывается до `try`, `Release` — в `finally`, чтобы счётчик не
+«протекал» при отмене или исключении. Семафор объявлен `static`, чтобы быть общим для всех экземпляров `BookingService`
+в процессе — иначе каждый DI-scope получил бы свой семафор, и взаимное исключение между запросами не работало бы.
+
+Ограничение: `SemaphoreSlim` работает только в пределах одного процесса. При нескольких инстансах приложения взаимное
+исключение нужно обеспечивать на уровне БД — например, транзакцией с `UPDATE ... WHERE AvailableSeats > 0` (или
+`SELECT ... FOR UPDATE`), а не семафором в памяти.
+
+**`BookingBackgroundService` — `SemaphoreSlim(3, 3)`**
+
+Семафор ограничивает параллелизм фоновой обработки броней тремя одновременно, чтобы не перегружать внешнюю систему и не
+создавать лишние `DbContext`. Здесь именно семафор, а не `lock`, потому что внутри критической секции есть `await` (
+имитация внешнего вызова + `SaveChangesAsync`). `WaitAsync` вызывается до `try`, `Release` — в `finally`, чтобы счётчик
+не «протекал» при отмене.
+
+Дополнительно каждая бронь обрабатывается в отдельном `scope` (`Task.WhenAll` + `CreateScope` на задачу), потому что
+`DbContext` не потокобезопасен, а семафор `(3,3)` ограничивает число одновременных контекстов.
 
 ## Список изменений:
+
+### 0.6.0
+
+**Добавлено:**
+
+- Миграции EF Core (`InitialCreate`): схема БД управляется через `dotnet ef migrations` / `dotnet ef database update`
+- `EventRepository` и `BookingRepository` — индивидуальные репозитории вместо generic-репозитория:
+    - `EventRepository`: `GetByIdAsync`, `GetFilteredAsync` (фильтры + пагинация + стабильная сортировка
+      `OrderBy(StartAt).ThenBy(Id)`), `CountAsync`, `AddAsync`, `RemoveAsync`
+    - `BookingRepository`: `GetByIdAsync`, `GetFilteredAsync` (фильтр по статусу), `AddAsync`, `UpdateAsync`
+- Интеграционные тесты с Testcontainers:
+    - `PostgresFixture` — общий контейнер PostgreSQL на всё решение
+    - `EventRepositoryTests` — фильтры (`Title`, `From`, `To`), пагинация, сортировка, CRUD, `Unspecified`-даты из
+      Swagger
+    - `BookingRepositoryTests` — фильтрация по статусу, CRUD
+    - `MigrationTests` — проверка применённых миграций, наличия таблиц, внешнего ключа и каскадного удаления
+
+**Изменено:**
+
+- `IEventRepository.UpdateAsync` удалён: в `BookingService` событие уже отслеживается контекстом после `GetByIdAsync`,
+  изменения сохраняются через `SaveChangesAsync`
+- `EventRepository.GetFilteredAsync`: `To`-фильтр включает весь день (`EndAt < To.Date.AddDays(1)`), границы приводятся
+  к UTC (`DateTime.SpecifyKind(..., Utc)`) — исправлен 500 при дате без `Z` из Swagger
+
+**Удалено:**
+
+- `EntityRepository<T>` — заменён на `EventRepository` и `BookingRepository`
+- `EventRepository.UpdateAsync` (метод и тест `UpdateAsync_ExistingEvent_UpdatesFields`)
+
+### 0.5.0
+
+**Добавлено:**
+
+- PostgreSQL + Entity Framework Core:
+- `AppDbContext`, `EventConfiguration`, `BookingConfiguration`
+
+**Изменено:**
+
+- Сервисы (`EventService`, `BookingService`) переведены с in-memory коллекций на `IEventRepository` /
+  `IBookingRepository` + `IUnitOfWork`
+- `BookingBackgroundService` переведён на `IServiceScopeFactory`: каждая бронь обрабатывается в отдельном scope,
+  `DbContext` не шарится между задачами
+- Юнит-тесты (`EventServiceTests`, `BookingServiceTests`) адаптированы под новую архитектуру: DI-контейнер с
+  `AppDbContext` (InMemory для юнит-тестов), репозитории и `IUnitOfWork`
+- Синхронизация в `BookingService.CreateBookingAsync`: `lock` заменён на `SemaphoreSlim(1, 1)` из-за асинхронного
+  `SaveChangesAsync`
+
+**Удалено:**
+
+- In-memory коллекции событий и броней в сервисах
+- `EnsureCreated()` при старте приложения (заменён на миграции)
 
 ### 0.4.0
 
