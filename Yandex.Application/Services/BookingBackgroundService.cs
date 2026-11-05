@@ -10,7 +10,7 @@ using Yandex.Domain.Enums;
 namespace Yandex.Application.Services;
 
 public class BookingBackgroundService(
-    IServiceProvider serviceProvider,
+    IServiceScopeFactory scopeFactory,
     ILogger<BookingBackgroundService> logger,
     IOptions<BookingBackgroundOptions> options) : BackgroundService
 {
@@ -41,11 +41,12 @@ public class BookingBackgroundService(
 
     private async Task ProcessPendingBookingsAsync(CancellationToken cancellationToken)
     {
-        using var scope = serviceProvider.CreateScope();
-        var bookingRepository = scope.ServiceProvider.GetRequiredService<IEntityRepository<Booking>>();
-        var query = bookingRepository.Query()
-            .Where(b => b.Status == BookingStatus.Pending);
-        var pendingBookings = await bookingRepository.ToListAsync(query, cancellationToken);
+        using var scope = scopeFactory.CreateScope();
+        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+        var pendingBookings = await bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, cancellationToken);
 
         if (pendingBookings.Count == 0)
         {
@@ -64,9 +65,9 @@ public class BookingBackgroundService(
         Booking booking,
         CancellationToken cancellationToken)
     {
-        using var scope = serviceProvider.CreateScope();
-        var bookingRepository = scope.ServiceProvider.GetRequiredService<IEntityRepository<Booking>>();
-        var eventRepository = scope.ServiceProvider.GetRequiredService<IEntityRepository<Event>>();
+        using var scope = scopeFactory.CreateScope();
+        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+        var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
         await Task.Delay(_processingDelay, cancellationToken);

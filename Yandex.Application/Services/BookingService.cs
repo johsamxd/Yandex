@@ -9,8 +9,8 @@ using Yandex.Domain.Entities;
 namespace Yandex.Application.Services;
 
 public class BookingService(
-    IEntityRepository<Booking> bookingRepository,
-    IEntityRepository<Event> eventRepository,
+    IBookingRepository bookingRepository,
+    IEventRepository eventRepository,
     IUnitOfWork unitOfWork,
     IMapper mapper) : IBookingService
 {
@@ -39,7 +39,6 @@ public class BookingService(
             };
 
             await bookingRepository.AddAsync(data, cancellationToken);
-            await eventRepository.UpdateAsync(existingEvent, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return mapper.Map<BookingDto>(data);
