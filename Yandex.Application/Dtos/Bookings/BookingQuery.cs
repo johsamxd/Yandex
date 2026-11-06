@@ -1,6 +1,6 @@
 ﻿using Yandex.Domain.Enums;
 
-namespace Yandex.Domain.Abstractions;
+namespace Yandex.Application.Dtos.Bookings;
 
 public record BookingQuery(
     BookingStatus? Status = null

@@ -6,10 +6,10 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <NoWarn>1591</NoWarn>
         <Version>0.1.2</Version>
+        <RootNamespace>Yandex.Web</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Yandex.Application\Yandex.Application.csproj"/>
         <ProjectReference Include="..\Yandex.Infrastructure\Yandex.Infrastructure.csproj"/>
     </ItemGroup>
 

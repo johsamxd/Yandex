@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Yandex.Application;
-using Yandex.Domain.Abstractions;
+using Yandex.Application.Abstractions.Persistence;
+using Yandex.Application.Abstractions.Persistence.Repositories;
 using Yandex.Infrastructure.Persistence;
 using Yandex.Infrastructure.Persistence.Repositories;
 

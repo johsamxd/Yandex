@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Yandex.Domain.Entities;
+﻿namespace Yandex.Domain.Entities;
 
 public class Event : BaseEntity
 {

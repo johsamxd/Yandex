@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Yandex.Domain.Abstractions;
+using Yandex.Application.Dtos.Bookings;
 using Yandex.Domain.Entities;
 using Yandex.Domain.Enums;
 using Yandex.Infrastructure.Persistence;
