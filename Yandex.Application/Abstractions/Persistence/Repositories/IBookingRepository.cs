@@ -1,6 +1,7 @@
-﻿using Yandex.Domain.Entities;
+﻿using Yandex.Application.Dtos.Bookings;
+using Yandex.Domain.Entities;
 
-namespace Yandex.Domain.Abstractions;
+namespace Yandex.Application.Abstractions.Persistence.Repositories;
 
 public interface IBookingRepository
 {

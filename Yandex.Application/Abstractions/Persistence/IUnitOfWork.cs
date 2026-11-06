@@ -1,4 +1,4 @@
-﻿namespace Yandex.Domain.Abstractions;
+﻿namespace Yandex.Application.Abstractions.Persistence;
 
 public interface IUnitOfWork
 {

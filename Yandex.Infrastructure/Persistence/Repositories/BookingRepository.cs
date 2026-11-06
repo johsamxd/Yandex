@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Yandex.Domain.Abstractions;
+using Yandex.Application.Abstractions.Persistence.Repositories;
+using Yandex.Application.Dtos.Bookings;
 using Yandex.Domain.Entities;
-using Yandex.Domain.Enums;
 
 namespace Yandex.Infrastructure.Persistence.Repositories;
 

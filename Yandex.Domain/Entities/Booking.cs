@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Yandex.Domain.Enums;
+﻿using Yandex.Domain.Enums;
 
 namespace Yandex.Domain.Entities;
 

@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Yandex.Application.Abstractions;
+using Yandex.Application.Abstractions.Services;
 using Yandex.Application.Dtos;
 using Yandex.Application.Dtos.Bookings;
 using Yandex.Application.Dtos.Events;

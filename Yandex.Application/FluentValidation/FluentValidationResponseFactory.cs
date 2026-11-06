@@ -3,7 +3,7 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Results;
-using ValidationException = Yandex.Application.Exceptions.ValidationException;
+using ValidationException = Yandex.Domain.Exceptions.ValidationException;
 
 namespace Yandex.Application.FluentValidation;
 

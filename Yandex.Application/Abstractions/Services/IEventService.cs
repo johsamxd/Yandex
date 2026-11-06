@@ -2,7 +2,7 @@
 using Yandex.Application.Dtos.Events;
 using Yandex.Application.Requests.Events;
 
-namespace Yandex.Application.Abstractions;
+namespace Yandex.Application.Abstractions.Services;
 
 public interface IEventService
 {

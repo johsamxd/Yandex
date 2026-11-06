@@ -1,10 +1,11 @@
 ﻿using AutoMapper;
-using Yandex.Application.Abstractions;
+using Yandex.Application.Abstractions.Persistence;
+using Yandex.Application.Abstractions.Persistence.Repositories;
+using Yandex.Application.Abstractions.Services;
 using Yandex.Application.Dtos.Bookings;
-using Yandex.Application.Exceptions;
-using Yandex.Application.Exceptions.Booking;
-using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
+using Yandex.Domain.Exceptions;
+using Yandex.Domain.Exceptions.Booking;
 
 namespace Yandex.Application.Services;
 

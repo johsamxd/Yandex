@@ -1,4 +1,4 @@
-﻿namespace Yandex.Domain.Abstractions;
+﻿namespace Yandex.Application.Dtos.Events;
 
 public record EventQuery(
     string? Title = null,

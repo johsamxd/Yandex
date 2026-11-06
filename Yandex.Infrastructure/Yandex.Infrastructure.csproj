@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Yandex.Domain\Yandex.Domain.csproj"/>
+        <ProjectReference Include="..\Yandex.Application\Yandex.Application.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
