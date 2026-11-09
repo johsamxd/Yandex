@@ -4,7 +4,7 @@ using Yandex.Application.Dtos;
 using Yandex.Domain.Exceptions;
 using Yandex.Domain.Exceptions.Booking;
 
-namespace Yandex.Web.Middlewares;
+namespace Yandex.Presentation.Middlewares;
 
 public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger, JsonSerializerOptions options)
 {

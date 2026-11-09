@@ -99,7 +99,7 @@ public class BookingBackgroundService(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw;
+            logger.LogInformation("Cancellation requested");
         }
         catch (Exception ex)
         {

@@ -16,7 +16,7 @@ internal sealed class TestServiceProvider : IDisposable
     {
         var services = new ServiceCollection();
         var dbName = Guid.NewGuid().ToString();
-        
+
         services.AddLogging();
 
         // Infrastructure

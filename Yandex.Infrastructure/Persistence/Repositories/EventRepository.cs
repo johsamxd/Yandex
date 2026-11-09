@@ -18,7 +18,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
     {
         return await BuildQuery(filter)
             .OrderBy(e => e.StartAt)
-            .ThenBy(e => e.Id) 
+            .ThenBy(e => e.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .AsNoTracking()

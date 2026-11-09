@@ -5,9 +5,9 @@ using Yandex.Application.Dtos;
 using Yandex.Application.Dtos.Bookings;
 using Yandex.Application.Dtos.Events;
 using Yandex.Application.Requests.Events;
-using Yandex.Web.Extensions;
+using Yandex.Presentation.Extensions;
 
-namespace Yandex.Web.Controllers;
+namespace Yandex.Presentation.Controllers;
 
 [ApiController]
 [Route("events")]
@@ -122,17 +122,12 @@ public class EventController(IEventService eventService, IBookingService booking
     public async Task<IActionResult> CreateBookingAsync(Guid id, CancellationToken cancellationToken)
     {
         var data = await bookingService.CreateBookingAsync(id, cancellationToken);
-        var location = Url.Action(
+        var response = new ApiResponse<BookingDto>(data, "Successfully created booking", HttpStatusCode.Accepted);
+
+        return AcceptedAtAction(
             nameof(BookingController.GetBookingAsync),
             nameof(BookingController).Replace("Controller", ""),
             new { id = data.Id },
-            Request.Scheme,
-            Request.Host.ToUriComponent()
-        );
-        var response = new ApiResponse<BookingDto>(data, "Successfully created booking", HttpStatusCode.Accepted);
-
-        Response.Headers.Append("Location", location);
-
-        return response.ToActionResult();
+            response);
     }
 }
