@@ -17,7 +17,7 @@ public class BookingService(
 {
     private static readonly SemaphoreSlim BookingSemaphore = new(1, 1);
 
-    public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
+    public async Task<BookingDto> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken = default)
     {
         await BookingSemaphore.WaitAsync(cancellationToken);
 
@@ -37,6 +37,7 @@ public class BookingService(
             var data = new Booking
             {
                 EventId = eventId,
+                UserId = userId
             };
 
             await bookingRepository.AddAsync(data, cancellationToken);

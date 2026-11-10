@@ -110,7 +110,8 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <summary>
     /// Create booking
     /// </summary>
-    /// <param name="id">Identifier</param>
+    /// <param name="eventId">Event identifier</param>
+    /// <param name="userId"> User identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="202">Booking accepted for processing</response>
     /// <response code="404">Event not found</response>
@@ -119,9 +120,9 @@ public class EventController(IEventService eventService, IBookingService booking
     [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CreateBookingAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
     {
-        var data = await bookingService.CreateBookingAsync(id, cancellationToken);
+        var data = await bookingService.CreateBookingAsync(eventId, userId, cancellationToken);
         var response = new ApiResponse<BookingDto>(data, "Successfully created booking", HttpStatusCode.Accepted);
 
         return AcceptedAtAction(
