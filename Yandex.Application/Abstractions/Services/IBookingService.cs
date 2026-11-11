@@ -1,6 +1,6 @@
 ﻿using Yandex.Application.Dtos.Bookings;
 
-namespace Yandex.Application.Abstractions;
+namespace Yandex.Application.Abstractions.Services;
 
 public interface IBookingService
 {

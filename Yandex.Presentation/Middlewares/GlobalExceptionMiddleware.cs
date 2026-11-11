@@ -1,10 +1,10 @@
 ﻿using System.Net;
 using System.Text.Json;
 using Yandex.Application.Dtos;
-using Yandex.Application.Exceptions;
-using Yandex.Application.Exceptions.Booking;
+using Yandex.Domain.Exceptions;
+using Yandex.Domain.Exceptions.Booking;
 
-namespace Yandex.Web.Middlewares;
+namespace Yandex.Presentation.Middlewares;
 
 public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger, JsonSerializerOptions options)
 {

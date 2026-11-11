@@ -25,9 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Yandex.Application\Yandex.Application.csproj" />
-        <ProjectReference Include="..\..\Yandex.Domain\Yandex.Domain.csproj" />
-        <ProjectReference Include="..\..\Yandex.Web\Yandex.Web.csproj" />
+        <ProjectReference Include="..\..\Yandex.Infrastructure\Yandex.Infrastructure.csproj"/>
     </ItemGroup>
 
 </Project>

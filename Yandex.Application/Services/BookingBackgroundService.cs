@@ -2,8 +2,10 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Yandex.Application.Abstractions.Persistence;
+using Yandex.Application.Abstractions.Persistence.Repositories;
+using Yandex.Application.Dtos.Bookings;
 using Yandex.Application.Options;
-using Yandex.Domain.Abstractions;
 using Yandex.Domain.Entities;
 using Yandex.Domain.Enums;
 
@@ -97,7 +99,7 @@ public class BookingBackgroundService(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw;
+            logger.LogInformation("Cancellation requested");
         }
         catch (Exception ex)
         {

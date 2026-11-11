@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Yandex.Application.Dtos;
 
-namespace Yandex.Web.Extensions;
+namespace Yandex.Presentation.Extensions;
 
 public static class ApiResponseExtension
 {

@@ -1,4 +1,4 @@
-﻿using Yandex.Domain.Abstractions;
+﻿using Yandex.Application.Abstractions.Persistence;
 
 namespace Yandex.Infrastructure.Persistence;
 

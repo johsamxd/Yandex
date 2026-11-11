@@ -1,9 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
-using Yandex.Application.Abstractions;
+using Yandex.Application.Abstractions.Services;
 using Yandex.Application.Automapper;
-using Yandex.Application.FluentValidation;
 using Yandex.Application.Services;
 
 namespace Yandex.Application;
@@ -18,10 +16,6 @@ public static class ApplicationServicesExtensions
             cfg.AddProfile<BookingProfile>();
         });
 
-        services.AddFluentValidationAutoValidation(configuration =>
-        {
-            configuration.OverrideDefaultResultFactoryWith<FluentValidationResponseFactory>();
-        });
         services.AddValidatorsFromAssembly(typeof(ApplicationServicesExtensions).Assembly);
 
         // Custom services

@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Yandex.Application.Abstractions;
+using Yandex.Application.Abstractions.Services;
 using Yandex.Application.Dtos;
 using Yandex.Application.Dtos.Bookings;
-using Yandex.Web.Extensions;
+using Yandex.Presentation.Extensions;
 
-namespace Yandex.Web.Controllers;
+namespace Yandex.Presentation.Controllers;
 
 [ApiController]
 [Route("bookings")]

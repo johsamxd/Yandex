@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Yandex.Domain.Abstractions;
+using Yandex.Application.Abstractions.Persistence.Repositories;
+using Yandex.Application.Dtos.Events;
 using Yandex.Domain.Entities;
 
 namespace Yandex.Infrastructure.Persistence.Repositories;
@@ -17,7 +18,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
     {
         return await BuildQuery(filter)
             .OrderBy(e => e.StartAt)
-            .ThenBy(e => e.Id) 
+            .ThenBy(e => e.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .AsNoTracking()

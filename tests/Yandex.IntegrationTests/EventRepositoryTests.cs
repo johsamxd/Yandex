@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Yandex.Domain.Abstractions;
+using Yandex.Application.Dtos.Events;
 using Yandex.Domain.Entities;
 using Yandex.Infrastructure.Persistence;
 using Yandex.Infrastructure.Persistence.Repositories;

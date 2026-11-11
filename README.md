@@ -28,7 +28,8 @@ cd Yandex
 
 2. Настройка подключения к PostgreSQL
 
-Строка подключения задаётся в `appsettings.json` (или `appsettings.Development.json`) проекта `Yandex.Web`, в секции
+Строка подключения задаётся в `appsettings.json` (или `appsettings.Development.json`) проекта `Yandex.Presentation`, в
+секции
 `ConnectionStrings`:
 
 ```json
@@ -46,7 +47,7 @@ cd Yandex
 Если миграций ещё нет (новая копия репозитория без папки Migrations), создайте начальную миграцию:
 
 ```
-dotnet ef migrations add --project Yandex.Infrastructure\Yandex.Infrastructure.csproj --startup-project Yandex.Web\Yandex.Web.csproj --context Yandex.Infrastructure.Persistence.AppDbContext --configuration Debug Initial --output-dir Persistence/Migrations
+dotnet ef migrations add --project Yandex.Infrastructure\Yandex.Infrastructure.csproj --startup-project Yandex.Presentation\Yandex.Presentation.csproj --context Yandex.Infrastructure.Persistence.AppDbContext --configuration Debug Initial --output-dir Persistence/Migrations
 ```
 
 Для выполнения команд dotnet ef установите инструмент, если он ещё не установлен:
@@ -58,12 +59,11 @@ dotnet tool install --global dotnet-ef
 4. Запуск приложения
 
 ```
-dotnet run --project Yandex.Web
+dotnet run --project Yandex.Presentation
 ```
 
 При старте:
 
-* выполняется EnsureCreated() — если БД пустая, создаются все таблицы;
 * запускается BookingBackgroundService, который каждые 5 секунд обрабатывает Pending-брони.
 
 ## Запуск тестов
@@ -89,8 +89,13 @@ Testcontainers. Они проверяют методы репозиториев 
 
 * Docker должен быть запущен (Docker Desktop на Windows/macOS, dockerd на Linux). Testcontainers сам скачает образ
   postgres:17-alpine и запустит контейнер;
-* доступ к Docker Hub для загрузки образа PostgreSQL и служебного образа testcontainers/ryuk. Если автоматическая
-  загрузка не срабатывает, скачайте образы заранее:
+* доступ к Docker Hub для загрузки образа PostgreSQL и служебного образа testcontainers/ryuk.
+
+## Структура проекта
+
+Решение разделено на четыре проекта по принципам чистой (луковой) архитектуры. Зависимости направлены
+строго внутрь: `Presentation → Infrastructure → Application → Domain`. Domain не зависит ни от чего,
+Infrastructure и Presentation знают только о внутренних слоях.
 
 ## API Документация
 
@@ -104,7 +109,7 @@ Testcontainers. Они проверяют методы репозиториев 
 | GET    | `/events`           | Получить список событий с фильтрацией и пагинацией | 200 OK                                      |
 | GET    | `/events/{id}`      | Получить событие по ID                             | 200 OK / 404 Not Found                      |
 | POST   | `/events`           | Создать новое событие                              | 201 Created / 400 Bad Request               |
-| PUT    | `/events/{id}`      | Обновить событие                                   | 204 No Content / 404 Not Found              |
+| PUT    | `/events/{id}`      | Обновить событие                                   | 200 OK / 404 Not Found                      |
 | DELETE | `/events/{id}`      | Удалить событие                                    | 204 No Content / 404 Not Found              |
 | POST   | `/events/{id}/book` | Создать бронь на событие                           | 202 Accepted / 404 Not Found / 409 Conflict |
 
@@ -253,6 +258,13 @@ Location: /bookings/7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
 `DbContext` не потокобезопасен, а семафор `(3,3)` ограничивает число одновременных контекстов.
 
 ## Список изменений:
+
+### 0.7.0
+
+**Изменено**
+
+- Проект Web переименован в Presentetion
+- Проект Infrastructure теперь зависит от Application все абстракции из Domain перенесены в Application
 
 ### 0.6.0
 

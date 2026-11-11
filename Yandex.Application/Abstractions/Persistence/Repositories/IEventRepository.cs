@@ -1,6 +1,7 @@
-﻿using Yandex.Domain.Entities;
+﻿using Yandex.Application.Dtos.Events;
+using Yandex.Domain.Entities;
 
-namespace Yandex.Domain.Abstractions;
+namespace Yandex.Application.Abstractions.Persistence.Repositories;
 
 public interface IEventRepository
 {
@@ -8,7 +9,7 @@ public interface IEventRepository
 
     Task<IReadOnlyList<Event>> GetFilteredAsync(EventQuery filter, int page, int pageSize,
         CancellationToken cancellationToken = default);
-    
+
     Task<int> CountAsync(EventQuery filter, CancellationToken cancellationToken = default);
 
     Task AddAsync(Event entity, CancellationToken cancellationToken = default);
