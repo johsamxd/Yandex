@@ -4,8 +4,10 @@ using Yandex.Application.Abstractions.Persistence.Repositories;
 using Yandex.Application.Abstractions.Services;
 using Yandex.Application.Dtos.Bookings;
 using Yandex.Domain.Entities;
+using Yandex.Domain.Enums;
 using Yandex.Domain.Exceptions;
 using Yandex.Domain.Exceptions.Booking;
+using Yandex.Domain.Exceptions.Event;
 
 namespace Yandex.Application.Services;
 
@@ -17,7 +19,8 @@ public class BookingService(
 {
     private static readonly SemaphoreSlim BookingSemaphore = new(1, 1);
 
-    public async Task<BookingDto> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<BookingDto> CreateBookingAsync(Guid eventId, Guid userId,
+        CancellationToken cancellationToken = default)
     {
         await BookingSemaphore.WaitAsync(cancellationToken);
 
@@ -49,6 +52,44 @@ public class BookingService(
         {
             BookingSemaphore.Release();
         }
+    }
+
+    public async Task<BookingDto> CancelBookingAsync(Guid bookingId, Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var booking = await bookingRepository.GetByIdAsync(bookingId, cancellationToken);
+        if (booking is null)
+        {
+            throw new NotFoundException($"Booking with id: {bookingId} not found");
+        }
+
+        if (booking.Status == BookingStatus.Cancelled)
+        {
+            return mapper.Map<BookingDto>(booking);
+        }
+
+        if (booking.UserId != userId)
+        {
+            throw new ForbiddenException($"Booking cancellation is forbidden for user with id: {userId}");
+        }
+
+        var existingEvent = await eventRepository.GetByIdAsync(booking.EventId, cancellationToken);
+        if (existingEvent is null)
+        {
+            throw new NotFoundException($"Event with id: {booking.EventId} not found");
+        }
+
+        if (existingEvent.StartAt <= DateTime.UtcNow)
+        {
+            throw new EventStartedException(
+                $"Event with id: {existingEvent.Id} has already started at {existingEvent.StartAt:O}");
+        }
+
+        booking.Status = BookingStatus.Cancelled;
+        existingEvent.ReleaseSeats();
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return mapper.Map<BookingDto>(booking);
     }
 
     public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
