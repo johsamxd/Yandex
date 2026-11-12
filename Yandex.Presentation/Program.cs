@@ -26,6 +26,7 @@ services.AddSerilog((s, lc) => lc
 // Options
 services.AddOptions();
 services.Configure<BookingBackgroundOptions>(configuration.GetSection("BookingBackground"));
+services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
 
 // Custom extensions
 services.AddApplicationServices();
