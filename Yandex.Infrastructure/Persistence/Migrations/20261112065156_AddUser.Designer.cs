@@ -12,7 +12,7 @@ using Yandex.Infrastructure.Persistence;
 namespace Yandex.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261110052608_AddUser")]
+    [Migration("20261112065156_AddUser")]
     partial class AddUser
     {
         /// <inheritdoc />
@@ -96,16 +96,21 @@ namespace Yandex.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Login")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Login")
+                        .IsUnique();
 
                     b.ToTable("Users", (string)null);
                 });

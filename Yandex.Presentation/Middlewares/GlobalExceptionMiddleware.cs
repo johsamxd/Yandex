@@ -29,6 +29,8 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
             ValidationException => (HttpStatusCode.BadRequest, "Validation error", exception.Message),
             NoAvailableSeatsException => (HttpStatusCode.Conflict, "No available seats for this event", exception.Message),
             ForbiddenException => (HttpStatusCode.Forbidden, "Forbidden", exception.Message),
+            ConflictException => (HttpStatusCode.Conflict, "Conflict", exception.Message),
+            UnauthorizedException => (HttpStatusCode.Unauthorized, "Unauthorized", exception.Message),
             _ => (HttpStatusCode.InternalServerError, "Internal server error",
                 "An unexpected error occurred. Please try again later.")
         };
