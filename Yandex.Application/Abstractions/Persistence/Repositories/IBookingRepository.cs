@@ -12,4 +12,6 @@ public interface IBookingRepository
     Task AddAsync(Booking entity, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Booking entity, CancellationToken cancellationToken = default);
+    
+    Task<int> CountActiveByUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }

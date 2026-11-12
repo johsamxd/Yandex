@@ -24,4 +24,11 @@ public class Booking : BaseEntity
         Status = BookingStatus.Rejected;
         ProcessedAt = DateTime.UtcNow;
     }
+
+    public void Cancel()
+    {
+        if (Status == BookingStatus.Cancelled)
+            throw new Exception("Booking is already cancelled");
+        Status = BookingStatus.Cancelled;
+    }
 }

@@ -18,6 +18,7 @@ public class BookingService(
     IMapper mapper) : IBookingService
 {
     private static readonly SemaphoreSlim BookingSemaphore = new(1, 1);
+    private const int MaxActiveBookingsPerUser = 10;
 
     public async Task<BookingDto> CreateBookingAsync(Guid eventId, Guid userId,
         CancellationToken cancellationToken = default)
@@ -31,6 +32,15 @@ public class BookingService(
             {
                 throw new NotFoundException($"Event with id: {eventId} not found");
             }
+            
+            if (existingEvent.StartAt <= DateTime.UtcNow)
+                throw new EventStartedException(
+                    $"Event with id: {eventId} has already started at {existingEvent.StartAt:O}");
+            
+            var activeCount = await bookingRepository.CountActiveByUserAsync(userId, cancellationToken);
+            if (activeCount >= MaxActiveBookingsPerUser)
+                throw new BookingLimitExceededException(
+                    $"Active booking limit exceeded. Limit: {MaxActiveBookingsPerUser}, current: {activeCount}");
 
             if (!existingEvent.TryReserveSeats())
             {
