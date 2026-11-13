@@ -120,7 +120,7 @@ public class BookingServiceTests : IDisposable
         var created = await _service.CreateBookingAsync(seededEvent.Id, userId, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetBookingByIdAsync(created.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetBookingByIdAsync(created.Id, userId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -145,7 +145,7 @@ public class BookingServiceTests : IDisposable
         await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetBookingByIdAsync(created.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetBookingByIdAsync(created.Id, userId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(userId, result.UserId);
@@ -167,7 +167,7 @@ public class BookingServiceTests : IDisposable
         await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetBookingByIdAsync(created.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetBookingByIdAsync(created.Id, userId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(userId, result.UserId);
@@ -211,11 +211,12 @@ public class BookingServiceTests : IDisposable
     public async Task GetBookingByIdAsync_WithNonExistentId_ShouldThrowNotFoundException()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var nonExistentBookingId = Guid.NewGuid();
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
-            _service.GetBookingByIdAsync(nonExistentBookingId, TestContext.Current.CancellationToken));
+            _service.GetBookingByIdAsync(nonExistentBookingId, userId, TestContext.Current.CancellationToken));
 
         Assert.Equal($"Booking with id: {nonExistentBookingId} not found", exception.Message);
     }

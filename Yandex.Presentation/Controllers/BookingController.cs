@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Yandex.Application.Abstractions.Services;
@@ -20,12 +19,14 @@ public class BookingController(IBookingService service) : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the event</response>
     /// <response code="404">Event not found</response>
+    [Authorize]
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBookingAsync(Guid id, CancellationToken cancellationToken)
     {
-        var data = await service.GetBookingByIdAsync(id, cancellationToken);
+        var userId = User.GetUserId();
+        var data = await service.GetBookingByIdAsync(id, userId, cancellationToken);
         var response = new ApiResponse<BookingDto>(data);
 
         return response.ToActionResult();
@@ -48,16 +49,8 @@ public class BookingController(IBookingService service) : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CancelBooking(Guid id, CancellationToken cancellationToken)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                          ?? User.FindFirst("sub")?.Value;
-
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            return Unauthorized();
-        }
-
+        var userId = User.GetUserId();
         await service.CancelBookingAsync(id, userId, cancellationToken);
-
         var response = new ApiResponse("Successfully deleted", true, HttpStatusCode.NoContent);
 
         return response.ToActionResult();

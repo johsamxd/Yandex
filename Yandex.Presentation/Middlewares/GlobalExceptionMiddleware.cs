@@ -3,6 +3,7 @@ using System.Text.Json;
 using Yandex.Application.Dtos;
 using Yandex.Domain.Exceptions;
 using Yandex.Domain.Exceptions.Booking;
+using Yandex.Domain.Exceptions.Event;
 
 namespace Yandex.Presentation.Middlewares;
 
@@ -27,10 +28,13 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
         {
             NotFoundException => (HttpStatusCode.NotFound, "Resource not found", exception.Message),
             ValidationException => (HttpStatusCode.BadRequest, "Validation error", exception.Message),
-            NoAvailableSeatsException => (HttpStatusCode.Conflict, "No available seats for this event", exception.Message),
             ForbiddenException => (HttpStatusCode.Forbidden, "Forbidden", exception.Message),
             ConflictException => (HttpStatusCode.Conflict, "Conflict", exception.Message),
             UnauthorizedException => (HttpStatusCode.Unauthorized, "Unauthorized", exception.Message),
+            
+            // Domain exceptions
+            NoAvailableSeatsException => (HttpStatusCode.Conflict, "No available seats for this event", exception.Message),
+            EventStartedException => (HttpStatusCode.BadRequest, "Event started", exception.Message),
             _ => (HttpStatusCode.InternalServerError, "Internal server error",
                 "An unexpected error occurred. Please try again later.")
         };

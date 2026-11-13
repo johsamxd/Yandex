@@ -6,5 +6,5 @@ public interface IBookingService
 {
     Task<BookingDto> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken = default);
     Task<BookingDto> CancelBookingAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken = default);
-    Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default);
+    Task<BookingDto> GetBookingByIdAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken = default);
 }

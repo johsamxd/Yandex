@@ -102,12 +102,17 @@ public class BookingService(
         return mapper.Map<BookingDto>(booking);
     }
 
-    public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken = default)
     {
         var data = await bookingRepository.GetByIdAsync(bookingId, cancellationToken);
         if (data is null)
         {
             throw new NotFoundException($"Booking with id: {bookingId} not found");
+        }
+        
+        if (data.UserId != userId)
+        {
+            throw new ForbiddenException($"Booking cancellation is forbidden for user with id: {userId}");
         }
 
         return mapper.Map<BookingDto>(data);
