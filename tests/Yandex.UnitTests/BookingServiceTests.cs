@@ -8,6 +8,7 @@ using Yandex.Domain.Entities;
 using Yandex.Domain.Enums;
 using Yandex.Domain.Exceptions;
 using Yandex.Domain.Exceptions.Booking;
+using Yandex.Domain.Exceptions.Event;
 
 namespace Yandex.UnitTests;
 
@@ -505,6 +506,154 @@ public class BookingServiceTests : IDisposable
         var finalEvent = await eventRepo.GetByIdAsync(eventId, TestContext.Current.CancellationToken);
         Assert.NotNull(finalEvent);
         Assert.Equal(0, finalEvent.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_WithPastEvent_ShouldThrowEventStartedException()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var pastEvent = new Event
+        {
+            Id = Guid.NewGuid(),
+            Title = "Past Event",
+            Description = "Event in the past",
+            StartAt = DateTime.UtcNow.AddDays(-1), // ← в прошлом
+            EndAt = DateTime.UtcNow.AddDays(-1).AddHours(2),
+            TotalSeats = 10,
+            AvailableSeats = 10
+        };
+        await _eventRepository.AddAsync(pastEvent, TestContext.Current.CancellationToken);
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EventStartedException>(() =>
+            _service.CreateBookingAsync(pastEvent.Id, userId, TestContext.Current.CancellationToken));
+
+        // Броней в БД нет
+        var bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
+        Assert.Empty(bookings);
+
+        // Место не зарезервировано
+        var fromDb = await _eventRepository.GetByIdAsync(pastEvent.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(fromDb);
+        Assert.Equal(10, fromDb.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_WhenBookingLimitReached_ShouldThrowBookingLimitExceededException()
+    {
+        // Arrange: создаём 10 активных броней для пользователя
+        var userId = Guid.NewGuid();
+        for (var i = 0; i < 10; i++)
+        {
+            var evt = await SeedEventAsync();
+            await _service.CreateBookingAsync(evt.Id, userId, TestContext.Current.CancellationToken);
+        }
+
+        // 11-е событие — чтобы лимит сработал именно на пользователе, а не на местах
+        var extraEvent = await SeedEventAsync();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<BookingLimitExceededException>(() =>
+            _service.CreateBookingAsync(extraEvent.Id, userId, TestContext.Current.CancellationToken));
+
+        // 11-я бронь не создалась
+        var bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(10, bookings.Count);
+
+        // Место у extraEvent не зарезервировано
+        var fromDb = await _eventRepository.GetByIdAsync(extraEvent.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(fromDb);
+        Assert.Equal(100, fromDb.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_LimitsOfDifferentUsers_AreIndependent()
+    {
+        // Arrange: user1 набрал 10 активных броней
+        var user1 = Guid.NewGuid();
+        for (var i = 0; i < 10; i++)
+        {
+            var evt = await SeedEventAsync();
+            await _service.CreateBookingAsync(evt.Id, user1, TestContext.Current.CancellationToken);
+        }
+
+        // Act: user2 создаёт свою первую бронь
+        var user2 = Guid.NewGuid();
+        var evtForUser2 = await SeedEventAsync();
+        var result = await _service.CreateBookingAsync(evtForUser2.Id, user2, TestContext.Current.CancellationToken);
+
+        // Assert: user2 успешно создал бронь, лимит user1 не влияет
+        Assert.NotNull(result);
+        Assert.Equal(user2, result.UserId);
+        Assert.Equal(BookingStatus.Pending, result.Status);
+
+        // У user2 ровно 1 активная бронь
+        var user2Bookings = await _bookingRepository.GetFilteredAsync(new BookingQuery()
+        {
+            Status = BookingStatus.Pending
+        }, TestContext.Current.CancellationToken);
+        Assert.Contains(user2Bookings, b => b.UserId == user2);
+    }
+
+    [Fact]
+    public async Task CancelBookingAsync_OwnBooking_ShouldSetStatusCancelled()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var seededEvent = await SeedEventAsync(totalSeats: 10);
+        var created = await _service.CreateBookingAsync(seededEvent.Id, userId, TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _service.CancelBookingAsync(created.Id, userId, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(BookingStatus.Cancelled, result.Status);
+
+        // Место вернулось
+        var fromDb = await _eventRepository.GetByIdAsync(seededEvent.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(fromDb);
+        Assert.Equal(10, fromDb.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task CancelBookingAsync_OtherUsersBooking_ShouldThrowForbiddenException()
+    {
+        // Arrange
+        var ownerId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+        var seededEvent = await SeedEventAsync();
+        var created = await _service.CreateBookingAsync(seededEvent.Id, ownerId, TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _service.CancelBookingAsync(created.Id, otherUserId, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task CancelBookingAsync_AlreadyCancelled_ShouldReturnDtoWithoutException()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var seededEvent = await SeedEventAsync(totalSeats: 10);
+        var created = await _service.CreateBookingAsync(seededEvent.Id, userId, TestContext.Current.CancellationToken);
+        await _service.CancelBookingAsync(created.Id, userId, TestContext.Current.CancellationToken);
+
+        // Act: повторная отмена
+        var result = await _service.CancelBookingAsync(created.Id, userId, TestContext.Current.CancellationToken);
+
+        // Assert: не бросило исключение, статус Cancelled, место вернулось один раз
+        Assert.Equal(BookingStatus.Cancelled, result.Status);
+        var fromDb = await _eventRepository.GetByIdAsync(seededEvent.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(fromDb);
+        Assert.Equal(10, fromDb.AvailableSeats); // не 11
     }
 
     // ===== Helpers =====
