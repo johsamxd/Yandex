@@ -97,10 +97,64 @@ Testcontainers. Они проверяют методы репозиториев 
 строго внутрь: `Presentation → Infrastructure → Application → Domain`. Domain не зависит ни от чего,
 Infrastructure и Presentation знают только о внутренних слоях.
 
+## Ролевая модель и разграничение прав
+
+В системе две роли — `User` и `Admin`. Роль хранится в сущности `User` и попадает в JWT-токен
+как claim `ClaimTypes.Role`, поэтому `[Authorize(Roles = "Admin")]` работает без похода в БД.
+
+| Роль | Права |
+|---|---|
+| **Анонимный** (без токена) | `GET /events`, `GET /events/{id}`, `POST /auth/register`, `POST /auth/login` |
+| **User** | Всё, что может анонимный, плюс `POST /events/{id}/book`, `GET /bookings/{id}`, `DELETE /bookings/{id}` (только своя бронь) |
+| **Admin** | Всё, что может User, плюс `POST /events`, `PUT /events/{id}`, `DELETE /events/{id}`, а также отмена любой брони |
+
+**Ограничения бизнес-логики:**
+
+- Пользователь не может забронировать событие, которое уже началось (`StartAt <= UtcNow`) → **400 Bad Request**.
+- Пользователь не может иметь больше 10 активных броней (`Pending` + `Confirmed`) → **409 Conflict**.
+- Пользователь может отменить только свою бронь; админ — любую → **403 Forbidden** при нарушении.
+- Повторная отмена уже отменённой брони идемпотентна — возвращает текущее состояние без ошибки.
+
+## Получение JWT-токена через Swagger
+
+1. Откройте Swagger UI: [http://localhost:5128/swagger/index.html](http://localhost:5128/swagger/index.html).
+2. Разверните `POST /auth/register` и создайте пользователя:
+
+```json
+{
+ "login": "admin",
+ "password": "admin123",
+ "role": "Admin"
+}
+```
+
+## Настройка JWT
+
+Параметры токена задаются в `appsettings.json` (или `appsettings.Development.json`) проекта
+`Yandex.Presentation`, в секции `Jwt`:
+
+```
+{
+  "Jwt": {
+    "Secret": "your-very-long-and-secure-secret-key-at-least-32-chars",
+    "Issuer": "YandexApi",
+    "Audience": "YandexClient",
+    "LifetimeMinutes": 60
+  }
+}
+```
+
 ## API Документация
 
 - [Base URL](http://localhost:5128)
 - [Swagger](http://localhost:5128/swagger/index.html)
+
+### Аутентификация (Auth)
+
+| Метод | Endpoint | Описание | Статус |
+|---|---|---|---|
+| POST | `/auth/register` | Регистрация пользователя | 201 Created / 409 Conflict |
+| POST | `/auth/login` | Вход и получение JWT | 200 OK / 401 Unauthorized |
 
 ### Мероприятия (Events)
 
@@ -121,6 +175,15 @@ Infrastructure и Presentation знают только о внутренних �
 
 ## Модель данных
 
+### Модель User
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `Id` | `Guid` | Уникальный идентификатор пользователя |
+| `Login` | `string` | Логин (уникальный) |
+| `PasswordHash` | `string` | SHA-256 хеш пароля |
+| `Role` | `UserRole` | Роль: `User` или `Admin` |
+
 ### Модель Event
 
 | Поле             | Тип        | Описание                                        |
@@ -140,6 +203,7 @@ Infrastructure и Presentation знают только о внутренних �
 |---------------|-----------------|--------------------------------|
 | `Id`          | `Guid`          | Уникальный идентификатор брони |
 | `EventId`     | `Guid`          | Идентификатор события          |
+| `UserId` | `Guid` | Идентификатор пользователя, создавшего бронь |
 | `Status`      | `BookingStatus` | Текущий статус брони           |
 | `CreatedAt`   | `DateTime`      | Дата и время создания          |
 | `ProcessedAt` | `DateTime?`     | Дата и время обработки         |
@@ -151,6 +215,7 @@ Infrastructure и Presentation знают только о внутренних �
 | `Pending`   | Бронь создана, ожидает обработки |
 | `Confirmed` | Бронь подтверждена               |
 | `Rejected`  | Бронь отклонена                  |
+| `Cancelled` | Бронь отменена пользователем или администратором |
 
 ## Сценарий использования: Бронирование места на событие
 
@@ -258,6 +323,29 @@ Location: /bookings/7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
 `DbContext` не потокобезопасен, а семафор `(3,3)` ограничивает число одновременных контекстов.
 
 ## Список изменений:
+
+### 0.8.0
+
+**Добавлено:**
+
+- Аутентификация и авторизация на основе JWT:
+    - сущность `User` (логин, SHA-256 хеш пароля, роль), `UserRole { User, Admin }`
+    - `IPasswordHasher` / `Sha256PasswordHasher` — хеширование и проверка паролей
+    - `IJwtTokenGenerator` / `JwtTokenGenerator` — генерация подписанного JWT (claims: `NameIdentifier`, `Name`, `Role`)
+    - `POST /auth/register`, `POST /auth/login`
+    - JWT-аутентификация в `Program.cs` (`AddJwtBearer`), Swagger с кнопкой **Authorize**
+- Ролевая модель: `[Authorize]` на бронировании, `[Authorize(Roles = "Admin")]` на управлении событиями
+- Доменные исключения: `EventStartedException` (400), `BookingLimitExceededException` (409), `ForbiddenException` (403)
+- Бизнес-правила: запрет бронирования прошедшего события, лимит 10 активных броней, отмена только своей брони (админ — любой)
+- `BookingStatus.Cancelled` и метод `Booking.Cancel()` с защитой от повторной отмены
+- `CountActiveByUserAsync` в `IBookingRepository`
+- Миграция `AddUsersAndBookingUserId`: таблица `Users`, уникальный индекс на `Login`, FK `Bookings.UserId → Users.Id`
+
+**Изменено:**
+
+- `CreateBookingAsync` принимает `userId`; `CancelBookingAsync` и `GetBookingByIdAsync` — `userId` и проверку прав
+- `BookingBackgroundService` корректно обрабатывает отмену (не подтверждает `Cancelled`)
+- README: описана ролевая модель, инструкция по JWT через Swagger, настройка секрета JWT
 
 ### 0.7.0
 
