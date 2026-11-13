@@ -35,6 +35,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
             // Domain exceptions
             NoAvailableSeatsException => (HttpStatusCode.Conflict, "No available seats for this event", exception.Message),
             EventStartedException => (HttpStatusCode.BadRequest, "Event started", exception.Message),
+            BookingLimitExceededException => (HttpStatusCode.BadRequest, "Booking limit exceeded", exception.Message),
             _ => (HttpStatusCode.InternalServerError, "Internal server error",
                 "An unexpected error occurred. Please try again later.")
         };

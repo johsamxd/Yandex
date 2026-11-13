@@ -8,6 +8,7 @@ using Yandex.Presentation.Extensions;
 
 namespace Yandex.Presentation.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("bookings")]
 public class BookingController(IBookingService service) : ControllerBase
@@ -19,8 +20,8 @@ public class BookingController(IBookingService service) : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the event</response>
     /// <response code="404">Event not found</response>
-    [Authorize]
     [HttpGet("{id}")]
+    [ActionName(nameof(GetBookingAsync))]
     [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBookingAsync(Guid id, CancellationToken cancellationToken)
@@ -41,13 +42,12 @@ public class BookingController(IBookingService service) : ControllerBase
     /// <response code="401">Unauthorized</response>
     /// <response code="403">Forbidden</response>
     /// <response code="404">Booking not found</response>
-    [Authorize]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CancelBooking(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CancelBookingAsync(Guid id, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
         await service.CancelBookingAsync(id, userId, cancellationToken);

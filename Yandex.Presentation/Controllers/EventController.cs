@@ -12,7 +12,10 @@ namespace Yandex.Presentation.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventController(IEventService eventService, IBookingService bookingService) : ControllerBase
+public class EventController(
+    IEventService eventService,
+    IBookingService bookingService,
+    ILogger<EventController> logger) : ControllerBase
 {
     /// <summary>
     /// Get events list
@@ -129,6 +132,15 @@ public class EventController(IEventService eventService, IBookingService booking
         var userId = User.GetUserId();
         var data = await bookingService.CreateBookingAsync(eventId, userId, cancellationToken);
         var response = new ApiResponse<BookingDto>(data, "Successfully created booking", HttpStatusCode.Accepted);
+        var location = Url.Action(
+            action: "GetBookingAsync",
+            controller: "bookings",
+            values: new { id = data.Id },
+            protocol: Request.Scheme,
+            host: Request.Host.ToUriComponent());
+
+        // Логируем — видно, сгенерировался ли URL и какой именно
+        logger.LogInformation("Generated Location for booking {BookingId}: {Location}", data.Id, location);
 
         return AcceptedAtAction(
             nameof(BookingController.GetBookingAsync),
