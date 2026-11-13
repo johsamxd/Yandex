@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Yandex.Application.Abstractions.Services;
 using Yandex.Application.Dtos;
@@ -11,7 +12,10 @@ namespace Yandex.Presentation.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventController(IEventService eventService, IBookingService bookingService) : ControllerBase
+public class EventController(
+    IEventService eventService,
+    IBookingService bookingService,
+    ILogger<EventController> logger) : ControllerBase
 {
     /// <summary>
     /// Get events list
@@ -54,6 +58,7 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="201">Event created successfully</response>
     /// <response code="400">Invalid request data</response>
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<EventDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
@@ -75,6 +80,7 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <response code="200">Event updated successfully</response>
     /// <response code="400">Invalid request data</response>
     /// <response code="404">Event not found</response>
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<EventDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
@@ -95,6 +101,7 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="204">Event deleted successfully</response>
     /// <response code="404">Event not found</response>
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
@@ -110,19 +117,30 @@ public class EventController(IEventService eventService, IBookingService booking
     /// <summary>
     /// Create booking
     /// </summary>
-    /// <param name="id">Identifier</param>
+    /// <param name="eventId">Event identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="202">Booking accepted for processing</response>
     /// <response code="404">Event not found</response>
     /// <response code="409">Event has no available seats</response>
-    [HttpPost("{id}/book")]
+    [Authorize]
+    [HttpPost("{eventId}/book")]
     [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CreateBookingAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken)
     {
-        var data = await bookingService.CreateBookingAsync(id, cancellationToken);
+        var userId = User.GetUserId();
+        var data = await bookingService.CreateBookingAsync(eventId, userId, cancellationToken);
         var response = new ApiResponse<BookingDto>(data, "Successfully created booking", HttpStatusCode.Accepted);
+        var location = Url.Action(
+            action: "GetBookingAsync",
+            controller: "bookings",
+            values: new { id = data.Id },
+            protocol: Request.Scheme,
+            host: Request.Host.ToUriComponent());
+
+        // Логируем — видно, сгенерировался ли URL и какой именно
+        logger.LogInformation("Generated Location for booking {BookingId}: {Location}", data.Id, location);
 
         return AcceptedAtAction(
             nameof(BookingController.GetBookingAsync),

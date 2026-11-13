@@ -33,8 +33,9 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetByIdAsync_ExistingBooking_ReturnsBooking()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var eventId = await SeedEventAsync();
-        var booking = CreateBooking(eventId);
+        var booking = CreateBooking(eventId, userId);
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -64,11 +65,12 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_NullStatus_ReturnsAllBookings()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
-            CreateBooking(eventId),
-            CreateBooking(eventId, BookingStatus.Confirmed),
-            CreateBooking(eventId, BookingStatus.Rejected));
+            CreateBooking(eventId, userId),
+            CreateBooking(eventId, userId, BookingStatus.Confirmed),
+            CreateBooking(eventId, userId, BookingStatus.Rejected));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -82,12 +84,13 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_WithPendingStatus_ReturnsOnlyPending()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
-            CreateBooking(eventId),
-            CreateBooking(eventId),
-            CreateBooking(eventId, BookingStatus.Confirmed),
-            CreateBooking(eventId, BookingStatus.Rejected));
+            CreateBooking(eventId, userId),
+            CreateBooking(eventId, userId),
+            CreateBooking(eventId, userId, BookingStatus.Confirmed),
+            CreateBooking(eventId, userId, BookingStatus.Rejected));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -103,11 +106,12 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_WithConfirmedStatus_ReturnsOnlyConfirmed()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
-            CreateBooking(eventId),
-            CreateBooking(eventId, BookingStatus.Confirmed),
-            CreateBooking(eventId, BookingStatus.Confirmed));
+            CreateBooking(eventId, userId),
+            CreateBooking(eventId, userId, BookingStatus.Confirmed),
+            CreateBooking(eventId, userId, BookingStatus.Confirmed));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -123,11 +127,12 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_WithRejectedStatus_ReturnsOnlyRejected()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
-            CreateBooking(eventId),
-            CreateBooking(eventId, BookingStatus.Confirmed),
-            CreateBooking(eventId, BookingStatus.Rejected));
+            CreateBooking(eventId, userId),
+            CreateBooking(eventId, userId, BookingStatus.Confirmed),
+            CreateBooking(eventId, userId, BookingStatus.Rejected));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -143,10 +148,11 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_NoMatchingStatus_ReturnsEmpty()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
-            CreateBooking(eventId, BookingStatus.Confirmed),
-            CreateBooking(eventId, BookingStatus.Rejected));
+            CreateBooking(eventId, userId, BookingStatus.Confirmed),
+            CreateBooking(eventId, userId, BookingStatus.Rejected));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -175,7 +181,8 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var booking = CreateBooking(eventId);
+        var userId = Guid.NewGuid();
+        var booking = CreateBooking(eventId, userId);
 
         // Act
         await _repository.AddAsync(booking, TestContext.Current.CancellationToken);
@@ -195,7 +202,8 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var booking = CreateBooking(eventId);
+        var userId = Guid.NewGuid();
+        var booking = CreateBooking(eventId, userId);
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -219,7 +227,8 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var booking = CreateBooking(eventId);
+        var userId = Guid.NewGuid();
+        var booking = CreateBooking(eventId, userId);
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -242,19 +251,21 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var booking = CreateBooking(eventId);
+        var userId = Guid.NewGuid();
+        var booking = CreateBooking(eventId, userId);
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             _repository.UpdateAsync(booking, TestContext.Current.CancellationToken));
     }
 
-    private static Booking CreateBooking(Guid eventId, BookingStatus status = BookingStatus.Pending)
+    private static Booking CreateBooking(Guid eventId, Guid userId, BookingStatus status = BookingStatus.Pending)
     {
         return new Booking
         {
             Id = Guid.NewGuid(),
             EventId = eventId,
+            UserId = userId,
             Status = status,
             CreatedAt = DateTime.UtcNow,
         };
