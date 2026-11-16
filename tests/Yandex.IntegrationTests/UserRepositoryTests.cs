@@ -32,8 +32,8 @@ public class UserRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
         // Arrange
         var user1 = new User
         {
-            Login =  "testuser",
-            PasswordHash =  "hash",
+            Login = "testuser",
+            PasswordHash = "hash",
             Role = UserRole.Admin
         };
         await _repository.AddAsync(user1, TestContext.Current.CancellationToken);
@@ -41,8 +41,8 @@ public class UserRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
 
         var user2 = new User
         {
-            Login =  "testuser",
-            PasswordHash =  "hash2",
+            Login = "testuser",
+            PasswordHash = "hash2",
             Role = UserRole.User
         };
 
@@ -58,8 +58,8 @@ public class UserRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
         // Arrange
         var user = new User
         {
-            Login =  "testuser",
-            PasswordHash =  "hash",
+            Login = "testuser",
+            PasswordHash = "hash",
             Role = UserRole.Admin
         };
         await _repository.AddAsync(user, TestContext.Current.CancellationToken);

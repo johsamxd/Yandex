@@ -50,7 +50,7 @@ public class UserService(
         }
 
         var token = jwtTokenGenerator.GenerateToken(user);
-        
+
         return new LoginResponse(token);
     }
 }

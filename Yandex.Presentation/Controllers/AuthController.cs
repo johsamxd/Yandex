@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using Yandex.Application.Abstractions.Services;
 using Yandex.Application.Dtos;
 using Yandex.Application.Dtos.Users;
@@ -23,7 +24,7 @@ public class AuthController(IUserService userService) : ControllerBase
         CancellationToken cancellationToken)
     {
         var data = await userService.RegisterAsync(request, cancellationToken);
-        var response = new ApiResponse<UserDto>(data, "User registered", System.Net.HttpStatusCode.Created);
+        var response = new ApiResponse<UserDto>(data, "User registered", HttpStatusCode.Created);
         return response.ToActionResult();
     }
 

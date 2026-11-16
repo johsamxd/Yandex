@@ -21,7 +21,7 @@ public static class InfrastructureServicesExtensions
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
-        
+
         services.AddSingleton<IPasswordHasher, Sha256PasswordHasher>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 

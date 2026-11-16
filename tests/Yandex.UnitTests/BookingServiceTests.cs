@@ -655,7 +655,7 @@ public class BookingServiceTests : IDisposable
         Assert.NotNull(fromDb);
         Assert.Equal(10, fromDb.AvailableSeats); // не 11
     }
-    
+
     [Fact]
     public async Task CancelBookingAsync_Admin_CanCancelAnyBooking()
     {
@@ -671,7 +671,7 @@ public class BookingServiceTests : IDisposable
         // Assert
         Assert.Equal(BookingStatus.Cancelled, result.Status);
     }
-    
+
     [Fact]
     public async Task CancelBookingAsync_OtherUserCancelsAlreadyCancelled_ShouldThrowForbidden()
     {
@@ -686,7 +686,7 @@ public class BookingServiceTests : IDisposable
         await Assert.ThrowsAsync<ForbiddenException>(() =>
             _service.CancelBookingAsync(created.Id, otherUserId, isAdmin: false, TestContext.Current.CancellationToken));
     }
-    
+
     [Fact]
     public async Task CancelBookingAsync_RejectedBooking_ShouldNotReleaseSeatsTwice()
     {

@@ -31,7 +31,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
             ForbiddenException => (HttpStatusCode.Forbidden, "Forbidden", exception.Message),
             ConflictException => (HttpStatusCode.Conflict, "Conflict", exception.Message),
             UnauthorizedException => (HttpStatusCode.Unauthorized, "Unauthorized", exception.Message),
-            
+
             // Domain exceptions
             NoAvailableSeatsException => (HttpStatusCode.Conflict, "No available seats for this event", exception.Message),
             EventStartedException => (HttpStatusCode.BadRequest, "Event started", exception.Message),

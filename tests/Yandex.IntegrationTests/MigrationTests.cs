@@ -111,7 +111,7 @@ public class MigrationTests(PostgresFixture fixture) : IAsyncLifetime
         };
         _context.Events.Add(evt);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        
+
         var user = new User
         {
             Login = "testuser",
