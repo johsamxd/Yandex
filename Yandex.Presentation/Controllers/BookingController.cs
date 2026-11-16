@@ -27,7 +27,8 @@ public class BookingController(IBookingService service) : ControllerBase
     public async Task<IActionResult> GetBookingAsync(Guid id, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-        var data = await service.GetBookingByIdAsync(id, userId, cancellationToken);
+        var isAdmin = User.IsInRole("Admin");
+        var data = await service.GetBookingByIdAsync(id, userId, isAdmin, cancellationToken);
         var response = new ApiResponse<BookingDto>(data);
 
         return response.ToActionResult();
@@ -50,7 +51,8 @@ public class BookingController(IBookingService service) : ControllerBase
     public async Task<IActionResult> CancelBookingAsync(Guid id, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-        await service.CancelBookingAsync(id, userId, cancellationToken);
+        var isAdmin = User.IsInRole("Admin");
+        await service.CancelBookingAsync(id, userId, isAdmin, cancellationToken);
         var response = new ApiResponse("Successfully deleted", true, HttpStatusCode.NoContent);
 
         return response.ToActionResult();

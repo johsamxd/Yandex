@@ -8,6 +8,7 @@ public class Booking : BaseEntity
     public Event Event { get; set; } = null!;
 
     public Guid UserId { get; set; }
+    public User User { get; set; } = null!;
 
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
 
@@ -28,7 +29,10 @@ public class Booking : BaseEntity
     public void Cancel()
     {
         if (Status == BookingStatus.Cancelled)
-            throw new Exception("Booking is already cancelled");
+        {
+            return;
+        }
         Status = BookingStatus.Cancelled;
+        ProcessedAt = DateTime.UtcNow;
     }
 }

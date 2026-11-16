@@ -128,6 +128,22 @@ Infrastructure и Presentation знают только о внутренних �
 }
 ```
 
+3. Разверните `POST /auth/login` и получите токен:
+
+   ```json
+   {
+     "login": "admin",
+     "password": "admin123"
+   }
+
+В ответе придёт { "token": "eyJhbGciOi..." }.
+
+4. Нажмите кнопку `Authorize` в правом верхнем углу Swagger UI, вставьте токен
+   (без префикса Bearer — Swagger добавит его сам) и нажмите `Authorize`.
+
+5. После этого все запросы из Swagger будут отправляться с заголовком
+   `Authorization: Bearer <token>`.
+
 ## Настройка JWT
 
 Параметры токена задаются в `appsettings.json` (или `appsettings.Development.json`) проекта
@@ -143,6 +159,23 @@ Infrastructure и Presentation знают только о внутренних �
   }
 }
 ```
+
+
+**Важно для продакшена:** не храните реальный `Secret` в `appsettings.json`, который
+коммитится в Git. Используйте:
+> - **user-secrets** для локальной разработки:
+
+>   dotnet user-secrets set "Jwt:Secret" "your-real-secret" --project Yandex.Presentation
+>   ```
+> - **переменные окружения** в CI/CD и на сервере:
+>   ```
+>   JWT__SECRET=your-real-secret
+>   ```
+>   (двойное подчёркивание — стандартный способ переопределить вложенную настройку).
+> - **секреты Kubernetes** (Secret) или хранилище секретов (Vault, Key Vault) в продакшене.
+>
+> В репозитории держите только placeholder. Секрет должен быть не короче 32 символов
+> (для HMAC-SHA256).
 
 ## API Документация
 

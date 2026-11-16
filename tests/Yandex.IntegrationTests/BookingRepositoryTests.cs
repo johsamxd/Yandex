@@ -33,7 +33,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetByIdAsync_ExistingBooking_ReturnsBooking()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var eventId = await SeedEventAsync();
         var booking = CreateBooking(eventId, userId);
         _context.Bookings.Add(booking);
@@ -65,7 +65,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_NullStatus_ReturnsAllBookings()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
             CreateBooking(eventId, userId),
@@ -84,7 +84,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_WithPendingStatus_ReturnsOnlyPending()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
             CreateBooking(eventId, userId),
@@ -106,7 +106,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_WithConfirmedStatus_ReturnsOnlyConfirmed()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
             CreateBooking(eventId, userId),
@@ -127,7 +127,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_WithRejectedStatus_ReturnsOnlyRejected()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
             CreateBooking(eventId, userId),
@@ -148,7 +148,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task GetFilteredAsync_NoMatchingStatus_ReturnsEmpty()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var eventId = await SeedEventAsync();
         _context.Bookings.AddRange(
             CreateBooking(eventId, userId, BookingStatus.Confirmed),
@@ -181,7 +181,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var booking = CreateBooking(eventId, userId);
 
         // Act
@@ -202,7 +202,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var booking = CreateBooking(eventId, userId);
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -227,7 +227,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var booking = CreateBooking(eventId, userId);
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -251,7 +251,7 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
     {
         // Arrange
         var eventId = await SeedEventAsync();
-        var userId = Guid.NewGuid();
+        var userId = await SeedUserAsync();
         var booking = CreateBooking(eventId, userId);
 
         // Act & Assert
@@ -286,5 +286,18 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
         _context.Events.Add(evt);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return evt.Id;
+    }
+    
+    private async Task<Guid> SeedUserAsync(string login = "testuser")
+    {
+        var user = new User
+        {
+            Login = login,
+            PasswordHash = "hash",
+            Role = UserRole.User,
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return user.Id;
     }
 }

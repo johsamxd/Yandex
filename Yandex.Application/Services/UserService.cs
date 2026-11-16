@@ -21,7 +21,9 @@ public class UserService(
     {
         var existing = await userRepository.GetByLoginAsync(request.Login, cancellationToken);
         if (existing is not null)
-            throw new ConflictException($"User with login: {request.Login} already exists");
+        {
+            throw new ValidationException($"User with login: {request.Login} already exists");
+        }
 
         var role = request.Role ?? UserRole.User;
         var passwordHash = passwordHasher.Hash(request.Password);
@@ -43,9 +45,12 @@ public class UserService(
     {
         var user = await userRepository.GetByLoginAsync(request.Login, cancellationToken);
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
-            throw new UnauthorizedException("Invalid login or password");
+        {
+            throw new ValidationException("Invalid login or password");
+        }
 
         var token = jwtTokenGenerator.GenerateToken(user);
+        
         return new LoginResponse(token);
     }
 }

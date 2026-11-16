@@ -111,11 +111,21 @@ public class MigrationTests(PostgresFixture fixture) : IAsyncLifetime
         };
         _context.Events.Add(evt);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        
+        var user = new User
+        {
+            Login = "testuser",
+            PasswordHash = "hash",
+            Role = UserRole.User,
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var booking = new Booking
         {
             Id = Guid.NewGuid(),
             EventId = evt.Id,
+            UserId = user.Id,
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };

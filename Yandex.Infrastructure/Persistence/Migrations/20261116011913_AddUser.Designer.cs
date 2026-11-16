@@ -12,7 +12,7 @@ using Yandex.Infrastructure.Persistence;
 namespace Yandex.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261112065156_AddUser")]
+    [Migration("20261116011913_AddUser")]
     partial class AddUser
     {
         /// <inheritdoc />
@@ -48,6 +48,8 @@ namespace Yandex.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EventId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Bookings", (string)null);
                 });
@@ -123,7 +125,15 @@ namespace Yandex.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Yandex.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Event");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Yandex.Domain.Entities.Event", b =>
