@@ -2,6 +2,7 @@
 using Yandex.Application.Abstractions.Persistence.Repositories;
 using Yandex.Application.Dtos.Bookings;
 using Yandex.Domain.Entities;
+using Yandex.Domain.Enums;
 
 namespace Yandex.Infrastructure.Persistence.Repositories;
 
@@ -39,4 +40,9 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
 
         context.Entry(existing).CurrentValues.SetValues(entity);
     }
+
+    public Task<int> CountActiveByUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        _set.CountAsync(b => b.UserId == userId &&
+                             (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed),
+            cancellationToken);
 }

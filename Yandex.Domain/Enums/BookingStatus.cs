@@ -15,5 +15,10 @@ public enum BookingStatus
     /// <summary>
     /// Booking has been rejected
     /// </summary>
-    Rejected = 2
+    Rejected = 2,
+
+    /// <summary>
+    /// Booking has been cancelled
+    /// </summary>
+    Cancelled = 3
 }
