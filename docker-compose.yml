@@ -21,6 +21,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      
+  # ─────────────────────────── Базы данных (по одной на сервис) ───────────────────────────
+  users-db:
+    image: postgres:17-alpine
+    container_name: eventapi-users-db
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - users-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   eventapi_pgdata:
+  users-db-data:

@@ -25,7 +25,7 @@ namespace Yandex.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Yandex.Domain.Entities.Booking", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.Booking", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -49,7 +49,7 @@ namespace Yandex.Infrastructure.Persistence.Migrations
                     b.ToTable("Bookings", (string)null);
                 });
 
-            modelBuilder.Entity("Yandex.Domain.Entities.Event", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.Event", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -83,9 +83,9 @@ namespace Yandex.Infrastructure.Persistence.Migrations
                     b.ToTable("Events", (string)null);
                 });
 
-            modelBuilder.Entity("Yandex.Domain.Entities.Booking", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.Booking", b =>
                 {
-                    b.HasOne("Yandex.Domain.Entities.Event", "Event")
+                    b.HasOne("UserService.Domain.Entities.Event", "Event")
                         .WithMany("Bookings")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -94,7 +94,7 @@ namespace Yandex.Infrastructure.Persistence.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("Yandex.Domain.Entities.Event", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.Event", b =>
                 {
                     b.Navigation("Bookings");
                 });

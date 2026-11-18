@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/UserService.IntegrationTests/UserService.IntegrationTests.csproj" />
+    <Project Path="tests/UserService.UnitTests/UserService.UnitTests.csproj" />
+  </Folder>
+  <Project Path="UserService.Application/UserService.Application.csproj" />
+  <Project Path="UserService.Domain/UserService.Domain.csproj" />
+  <Project Path="UserService.Infrastructure/UserService.Infrastructure.csproj" />
+  <Project Path="UserService.Presentation/UserService.Presentation.csproj" />
+</Solution>

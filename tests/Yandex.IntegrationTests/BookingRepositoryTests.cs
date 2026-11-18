@@ -290,14 +290,6 @@ public class BookingRepositoryTests(PostgresFixture fixture) : IAsyncLifetime
 
     private async Task<Guid> SeedUserAsync(string login = "testuser")
     {
-        var user = new User
-        {
-            Login = login,
-            PasswordHash = "hash",
-            Role = UserRole.User,
-        };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return user.Id;
+        return Guid.NewGuid();
     }
 }
