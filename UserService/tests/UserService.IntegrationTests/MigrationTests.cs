@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using UserService.Domain.Entities;
-using UserService.Domain.Enums;
 using UserService.Infrastructure.Persistence;
 
 namespace UserService.IntegrationTests;

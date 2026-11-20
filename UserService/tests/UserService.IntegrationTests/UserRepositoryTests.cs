@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Shared.Domain.Enums;
 using UserService.Domain.Entities;
-using UserService.Domain.Enums;
 using UserService.Infrastructure.Persistence;
 using UserService.Infrastructure.Persistence.Repositories;
 

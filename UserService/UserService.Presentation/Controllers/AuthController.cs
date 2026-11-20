@@ -1,10 +1,10 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Application.Dtos;
+using Shared.Presentation.Extensions;
 using UserService.Application.Abstractions.Services;
-using UserService.Application.Dtos;
 using UserService.Application.Dtos.Users;
 using UserService.Application.Requests.Users;
-using UserService.Presentation.Extensions;
 
 namespace UserService.Presentation.Controllers;
 

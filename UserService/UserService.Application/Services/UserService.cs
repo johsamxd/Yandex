@@ -1,12 +1,12 @@
-﻿using UserService.Application.Abstractions.Persistence;
+﻿using Shared.Application.Abstractions.Persistence;
+using Shared.Domain.Enums;
+using Shared.Domain.Exceptions;
 using UserService.Application.Abstractions.Persistence.Repositories;
 using UserService.Application.Abstractions.Security;
 using UserService.Application.Abstractions.Services;
 using UserService.Application.Dtos.Users;
 using UserService.Application.Requests.Users;
 using UserService.Domain.Entities;
-using UserService.Domain.Enums;
-using UserService.Domain.Exceptions;
 
 namespace UserService.Application.Services;
 

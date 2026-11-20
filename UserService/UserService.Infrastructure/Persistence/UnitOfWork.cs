@@ -1,4 +1,4 @@
-﻿using UserService.Application.Abstractions.Persistence;
+﻿using Shared.Application.Abstractions.Persistence;
 
 namespace UserService.Infrastructure.Persistence;
 

@@ -3,8 +3,8 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Application.Options;
 using UserService.Application.Abstractions.Security;
-using UserService.Application.Options;
 using UserService.Domain.Entities;
 
 namespace UserService.Infrastructure.Security;

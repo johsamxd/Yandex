@@ -7,6 +7,7 @@
   
     <ItemGroup>
         <ProjectReference Include="..\UserService.Domain\UserService.Domain.csproj"/>
+        <ProjectReference Include="..\..\Shared\Shared.Application\Shared.Application.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -15,5 +16,4 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12"/>
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
     </ItemGroup>
-    
 </Project>

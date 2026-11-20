@@ -1,4 +1,5 @@
-﻿using UserService.Domain.Enums;
+﻿using Shared.Domain.Entities;
+using Shared.Domain.Enums;
 
 namespace UserService.Domain.Entities;
 

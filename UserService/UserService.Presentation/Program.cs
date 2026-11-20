@@ -7,13 +7,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
+using Shared.Application.Options;
+using Shared.Presentation.FluentValidation;
+using Shared.Presentation.Middlewares;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using UserService.Application;
 using UserService.Application.Options;
 using UserService.Infrastructure;
 using UserService.Infrastructure.Persistence;
-using UserService.Presentation.FluentValidation;
-using UserService.Presentation.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;

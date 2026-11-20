@@ -19,4 +19,10 @@
     <ItemGroup>
       <Folder Include="Persistence\Migrations\" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Shared.Application">
+        <HintPath>..\..\Shared\Shared.Application\bin\Debug\netstandard2.0\Shared.Application.dll</HintPath>
+      </Reference>
+    </ItemGroup>
 </Project>

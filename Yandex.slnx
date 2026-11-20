@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/Shared.Application/Shared.Application.csproj" />
+    <Project Path="Shared/Shared.Domain/Shared.Domain.csproj" />
+    <Project Path="Shared/Shared.Presentation/Shared.Presentation.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Yandex.IntegrationTests/Yandex.IntegrationTests.csproj" />
     <Project Path="tests/Yandex.UnitTests/Yandex.UnitTests.csproj" />
