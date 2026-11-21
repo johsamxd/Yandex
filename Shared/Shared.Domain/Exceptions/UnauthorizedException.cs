@@ -1,3 +1,9 @@
-﻿namespace Shared.Domain.Exceptions;
+﻿using System.Net;
 
-public class UnauthorizedException(string message) : Exception(message);
+namespace Shared.Domain.Exceptions;
+
+public class UnauthorizedException(string message) : DomainException(message)
+{
+    public override HttpStatusCode StatusCode => HttpStatusCode.Unauthorized;
+    public override string Title => "Unauthorized";
+}

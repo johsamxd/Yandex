@@ -1,3 +1,9 @@
-﻿namespace Shared.Domain.Exceptions;
+﻿using System.Net;
 
-public class ForbiddenException(string message) : Exception(message);
+namespace Shared.Domain.Exceptions;
+
+public class ForbiddenException(string message) : DomainException(message)
+{
+    public override HttpStatusCode StatusCode => HttpStatusCode.Forbidden;
+    public override string Title => "Forbidden";
+}

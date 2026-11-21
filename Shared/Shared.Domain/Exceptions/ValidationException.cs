@@ -1,3 +1,9 @@
-﻿namespace Shared.Domain.Exceptions;
+﻿using System.Net;
 
-public class ValidationException(string message) : Exception(message);
+namespace Shared.Domain.Exceptions;
+
+public class ValidationException(string message) : DomainException(message)
+{
+    public override HttpStatusCode StatusCode => HttpStatusCode.BadRequest;
+    public override string Title => "Validation error";
+}

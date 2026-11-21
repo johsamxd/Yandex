@@ -39,6 +39,23 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+      
+  events-db:
+    image: postgres:16
+    container_name: eventapi-events-db
+    environment:
+      POSTGRES_DB: events
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - events-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   eventapi_pgdata:

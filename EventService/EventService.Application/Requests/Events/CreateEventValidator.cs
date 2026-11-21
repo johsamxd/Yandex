@@ -1,0 +1,22 @@
+﻿using FluentValidation;
+
+namespace EventService.Application.Requests.Events;
+
+public class CreateEventValidator : AbstractValidator<CreateEventRequest>
+{
+    public CreateEventValidator()
+    {
+        RuleFor(x => x.Title)
+            .NotEmpty()
+            .MaximumLength(100);
+
+        RuleFor(x => x.StartAt)
+            .NotEmpty();
+
+        RuleFor(x => x.EndAt)
+            .NotEmpty()
+            .GreaterThan(x => x.StartAt);
+
+        RuleFor(x => x.TotalSeats).GreaterThan(0);
+    }
+}

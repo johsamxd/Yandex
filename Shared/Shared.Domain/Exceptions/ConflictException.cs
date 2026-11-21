@@ -1,3 +1,9 @@
-﻿namespace Shared.Domain.Exceptions;
+﻿using System.Net;
 
-public class ConflictException(string message) : Exception(message);
+namespace Shared.Domain.Exceptions;
+
+public class ConflictException(string message) : DomainException(message)
+{
+    public override HttpStatusCode StatusCode => HttpStatusCode.Conflict;
+    public override string Title => "Conflict";
+}

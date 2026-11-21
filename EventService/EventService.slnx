@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/EventService.IntegrationTests/EventService.IntegrationTests.csproj" />
+    <Project Path="tests/EventService.UnitTests/EventService.UnitTests.csproj" />
+  </Folder>
+  <Project Path="EventService.Application/EventService.Application.csproj" />
+  <Project Path="EventService.Domain/EventService.Domain.csproj" />
+  <Project Path="EventService.Infrastructure/EventService.Infrastructure.csproj" />
+  <Project Path="EventService.Presentation/EventService.Presentation.csproj" />
+</Solution>
