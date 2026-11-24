@@ -1,0 +1,23 @@
+﻿using BookingService.Application.Abstractions.Persistence.Repositories;
+using BookingService.Infrastructure.Persistence;
+using BookingService.Infrastructure.Persistence.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Shared.Application.Abstractions.Persistence;
+
+namespace BookingService.Infrastructure;
+
+public static class InfrastructureServicesExtensions
+{
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+
+        return services;
+    }
+}
