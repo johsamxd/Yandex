@@ -1,3 +1,18 @@
+# Запуск всей системы одной командой:  docker compose up --build
+#
+# Порты на хосте:
+#   user-service    http://localhost:5129/swagger
+#   event-service   http://localhost:5128/swagger
+#   booking-service http://localhost:5130/swagger
+#   kafka (с хоста) localhost:9092, базы: users-db 5433, events-db 5434, bookings-db 5435
+
+# Общие настройки JWT: токен выдаёт user-service, а event-service и booking-service его проверяют,
+# поэтому секрет, издатель и аудитория должны совпадать во всех трёх сервисах.
+x-jwt-env: &jwt-env
+  Jwt__Secret: ${JWT_SECRET:-your-very-long-and-secure-secret-key-at-least-32-chars}
+  Jwt__Issuer: ${JWT_ISSUER:-YandexApi}
+  Jwt__Audience: ${JWT_AUDIENCE:-YandexClient}
+
 services:
   # ─────────────────────────── Инфраструктура обмена сообщениями ───────────────────────────
   zookeeper:
@@ -30,7 +45,9 @@ services:
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Топик booking-confirmed создаёт event-service при старте (KafkaTopicInitializer),
+      # поэтому автосоздание топиков на брокере отключено.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     healthcheck:
       test:
         [
@@ -92,6 +109,59 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # ─────────────────────────── Сервисы приложения ───────────────────────────
+  user-service:
+    build:
+      context: .
+      dockerfile: UserService/Dockerfile
+    container_name: eventapi-user-service
+    depends_on:
+      users-db:
+        condition: service_healthy
+    environment:
+      <<: *jwt-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=users-db;Port=5432;Database=users;Username=postgres;Password=postgres
+    ports:
+      - "5129:8080"
+
+  event-service:
+    build:
+      context: .
+      dockerfile: EventService/Dockerfile
+    container_name: eventapi-event-service
+    depends_on:
+      events-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *jwt-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=events-db;Port=5432;Database=events;Username=postgres;Password=postgres
+      Kafka__BootstrapServers: kafka:29092
+      Kafka__ConsumerGroup: event-service
+    ports:
+      - "5128:8080"
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: BookingService/Dockerfile
+    container_name: eventapi-booking-service
+    depends_on:
+      bookings-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *jwt-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=bookings-db;Port=5432;Database=bookings;Username=postgres;Password=postgres
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "5130:8080"
 
 volumes:
   users-db-data:

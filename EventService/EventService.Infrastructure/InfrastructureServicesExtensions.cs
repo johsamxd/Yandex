@@ -1,4 +1,5 @@
 ﻿using EventService.Application.Abstractions.Persistence.Repositories;
+using EventService.Infrastructure.Messaging;
 using EventService.Infrastructure.Persistence;
 using EventService.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,12 @@ public static class InfrastructureServicesExtensions
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IProcessedBookingRepository, ProcessedBookingRepository>();
+
+        // Порядок важен: hosted-сервисы стартуют в порядке регистрации.
+        // Сначала создаём топик, затем запускаем подписчика.
+        services.AddHostedService<KafkaTopicInitializer>();
+        services.AddHostedService<BookingConfirmedConsumer>();
 
         return services;
     }

@@ -31,6 +31,7 @@ services.AddSerilog((s, lc) => lc
 services.AddOptions();
 services.Configure<BookingBackgroundOptions>(configuration.GetSection("BookingBackground"));
 services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
+services.Configure<KafkaOptions>(configuration.GetSection(KafkaOptions.SectionName));
 
 // Auth
 var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>()
@@ -74,9 +75,9 @@ services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Yandex API",
+        Title = "Booking Service API",
         Version = "v1",
-        Description = "API for Yandex practicum task",
+        Description = "Создание и отмена броней. После подтверждения брони публикует событие BookingConfirmed в Kafka.",
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

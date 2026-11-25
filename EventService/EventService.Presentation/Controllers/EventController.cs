@@ -11,10 +11,7 @@ namespace EventService.Presentation.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventController(
-    IEventService eventService
-    /*IBookingService bookingService*/
-) : ControllerBase
+public class EventController(IEventService eventService) : ControllerBase
 {
     /// <summary>
     /// Get events list
@@ -112,30 +109,4 @@ public class EventController(
 
         return response.ToActionResult();
     }
-
-    /*/// <summary>
-    /// Create booking
-    /// </summary>
-    /// <param name="eventId">Event identifier</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <response code="202">Booking accepted for processing</response>
-    /// <response code="404">Event not found</response>
-    /// <response code="409">Event has no available seats</response>
-    [Authorize]
-    [HttpPost("{eventId}/book")]
-    [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status202Accepted)]
-    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken)
-    {
-        var userId = User.GetUserId();
-        var data = await bookingService.CreateBookingAsync(eventId, userId, cancellationToken);
-        var response = new ApiResponse<BookingDto>(data, "Successfully created booking", HttpStatusCode.Accepted);
-
-        return AcceptedAtAction(
-            nameof(BookingController.GetBookingAsync),
-            nameof(BookingController).Replace("Controller", ""),
-            new { id = data.Id },
-            response);
-    }*/
 }

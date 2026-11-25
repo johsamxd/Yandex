@@ -11,6 +11,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<Event> Events => Set<Event>();
 
+    public DbSet<ProcessedBooking> ProcessedBookings => Set<ProcessedBooking>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

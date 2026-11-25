@@ -18,6 +18,7 @@ public static class ApplicationServicesExtensions
 
         // Custom services
         services.AddScoped<IEventService, Services.EventService>();
+        services.AddScoped<IBookingConfirmedHandler, Services.BookingConfirmedHandler>();
 
         return services;
     }

@@ -39,45 +39,43 @@ public class MigrationTests(PostgresFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Schema_ContainsRequiredTables()
+    public async Task Schema_ContainsOnlyOwnTables()
     {
         // Arrange
         await using var connection = new NpgsqlConnection(_context.Database.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await using var command = new NpgsqlCommand(
-            @"SELECT table_name 
-              FROM information_schema.tables 
-              WHERE table_schema = 'public' 
-                AND table_name IN ('Events', 'Bookings')",
+            @"SELECT table_name
+              FROM information_schema.tables
+              WHERE table_schema = 'public'",
             connection);
 
         // Act
-        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
-
         var tables = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
         while (await reader.ReadAsync(TestContext.Current.CancellationToken))
         {
             tables.Add(reader.GetString(0));
         }
 
         // Assert
-        Assert.Contains("Events", tables);
         Assert.Contains("Bookings", tables);
+        Assert.DoesNotContain("Events", tables);
+        Assert.DoesNotContain("Users", tables);
     }
 
     [Fact]
-    public async Task Schema_HasForeignKeyFromBookingsToEvents()
+    public async Task Schema_HasNoForeignKeys_BecauseServicesShareNoData()
     {
         // Arrange
         await using var connection = new NpgsqlConnection(_context.Database.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await using var command = new NpgsqlCommand(
-            @"SELECT constraint_name 
-              FROM information_schema.table_constraints 
+            @"SELECT constraint_name
+              FROM information_schema.table_constraints
               WHERE table_schema = 'public'
-                AND table_name = 'Bookings'
                 AND constraint_type = 'FOREIGN KEY'",
             connection);
 
@@ -89,8 +87,7 @@ public class MigrationTests(PostgresFixture fixture) : IAsyncLifetime
             constraintNames.Add(reader.GetString(0));
         }
 
-        // Assert
-        Assert.Contains(constraintNames, name =>
-            name.Contains("FK_Bookings_Events", StringComparison.OrdinalIgnoreCase));
+        // Assert — связь между сервисами только по идентификаторам, без внешних ключей
+        Assert.Empty(constraintNames);
     }
 }

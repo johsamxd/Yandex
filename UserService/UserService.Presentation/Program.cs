@@ -12,7 +12,6 @@ using Shared.Presentation.FluentValidation;
 using Shared.Presentation.Middlewares;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using UserService.Application;
-using UserService.Application.Options;
 using UserService.Infrastructure;
 using UserService.Infrastructure.Persistence;
 
@@ -29,7 +28,6 @@ services.AddSerilog((s, lc) => lc
 
 // Options
 services.AddOptions();
-services.Configure<BookingBackgroundOptions>(configuration.GetSection("BookingBackground"));
 services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
 
 // Auth
@@ -74,9 +72,9 @@ services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Yandex API",
+        Title = "User Service API",
         Version = "v1",
-        Description = "API for Yandex practicum task",
+        Description = "Регистрация, вход и выдача JWT-токена.",
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

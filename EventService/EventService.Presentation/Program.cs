@@ -29,6 +29,7 @@ services.AddSerilog((s, lc) => lc
 // Options
 services.AddOptions();
 services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
+services.Configure<KafkaOptions>(configuration.GetSection(KafkaOptions.SectionName));
 
 // Auth
 var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>()
@@ -72,9 +73,9 @@ services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Yandex API",
+        Title = "Event Service API",
         Version = "v1",
-        Description = "API for Yandex practicum task",
+        Description = "Управление событиями (CRUD) и учёт свободных мест. Места уменьшаются по событию BookingConfirmed из Kafka.",
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

@@ -23,6 +23,7 @@ internal sealed class TestServiceProvider : IDisposable
         services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(dbName));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IProcessedBookingRepository, ProcessedBookingRepository>();
 
         // Application
         services.AddApplicationServices();
