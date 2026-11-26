@@ -1,10 +1,38 @@
 <Solution>
-  <Folder Name="/tests/">
-    <Project Path="tests/Yandex.IntegrationTests/Yandex.IntegrationTests.csproj" />
-    <Project Path="tests/Yandex.UnitTests/Yandex.UnitTests.csproj" />
+  <Folder Name="/Shared/">
+    <Project Path="Shared/Shared.Domain/Shared.Domain.csproj" />
+    <Project Path="Shared/Shared.Application/Shared.Application.csproj" />
+    <Project Path="Shared/Shared.Contracts/Shared.Contracts.csproj" />
+    <Project Path="Shared/Shared.Presentation/Shared.Presentation.csproj" />
   </Folder>
-  <Project Path="Yandex.Application/Yandex.Application.csproj" />
-  <Project Path="Yandex.Domain/Yandex.Domain.csproj" />
-  <Project Path="Yandex.Infrastructure/Yandex.Infrastructure.csproj" />
-  <Project Path="Yandex.Presentation/Yandex.Presentation.csproj" />
+  <Folder Name="/UserService/">
+    <Project Path="UserService/UserService.Domain/UserService.Domain.csproj" />
+    <Project Path="UserService/UserService.Application/UserService.Application.csproj" />
+    <Project Path="UserService/UserService.Infrastructure/UserService.Infrastructure.csproj" />
+    <Project Path="UserService/UserService.Presentation/UserService.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/UserService/tests/">
+    <Project Path="UserService/tests/UserService.UnitTests/UserService.UnitTests.csproj" />
+    <Project Path="UserService/tests/UserService.IntegrationTests/UserService.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/EventService/">
+    <Project Path="EventService/EventService.Domain/EventService.Domain.csproj" />
+    <Project Path="EventService/EventService.Application/EventService.Application.csproj" />
+    <Project Path="EventService/EventService.Infrastructure/EventService.Infrastructure.csproj" />
+    <Project Path="EventService/EventService.Presentation/EventService.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/EventService/tests/">
+    <Project Path="EventService/tests/EventService.UnitTests/EventService.UnitTests.csproj" />
+    <Project Path="EventService/tests/EventService.IntegrationTests/EventService.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/BookingService/">
+    <Project Path="BookingService/BookingService.Domain/BookingService.Domain.csproj" />
+    <Project Path="BookingService/BookingService.Application/BookingService.Application.csproj" />
+    <Project Path="BookingService/BookingService.Infrastructure/BookingService.Infrastructure.csproj" />
+    <Project Path="BookingService/BookingService.Presentation/BookingService.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/BookingService/tests/">
+    <Project Path="BookingService/tests/BookingService.UnitTests/BookingService.UnitTests.csproj" />
+    <Project Path="BookingService/tests/BookingService.IntegrationTests/BookingService.IntegrationTests.csproj" />
+  </Folder>
 </Solution>

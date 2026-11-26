@@ -1,0 +1,11 @@
+﻿using Shared.Application.Dtos;
+
+namespace EventService.Application.Dtos.Events;
+
+public record EventFilter(
+    string? Title = null,
+    DateTime? From = null,
+    DateTime? To = null,
+    int Page = 1,
+    int PageSize = 10
+) : PaginationParams(Page, PageSize);

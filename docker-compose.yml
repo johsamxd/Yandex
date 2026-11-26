@@ -1,26 +1,172 @@
-# PostgreSQL для EventApi — совпадает с ConnectionStrings:DefaultConnection в appsettings.json
-# Запуск из корня репозитория: docker compose up -d
-# Остановка: docker compose down
-# Данные сохраняются в именованном томе eventapi_pgdata
+# Запуск всей системы одной командой:  docker compose up --build
+#
+# Порты на хосте:
+#   user-service    http://localhost:5129/swagger
+#   event-service   http://localhost:5128/swagger
+#   booking-service http://localhost:5130/swagger
+#   kafka (с хоста) localhost:9092, базы: users-db 5433, events-db 5434, bookings-db 5435
+
+# Общие настройки JWT: токен выдаёт user-service, а event-service и booking-service его проверяют,
+# поэтому секрет, издатель и аудитория должны совпадать во всех трёх сервисах.
+x-jwt-env: &jwt-env
+  Jwt__Secret: ${JWT_SECRET:-your-very-long-and-secure-secret-key-at-least-32-chars}
+  Jwt__Issuer: ${JWT_ISSUER:-YandexApi}
+  Jwt__Audience: ${JWT_AUDIENCE:-YandexClient}
 
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: eventapi-postgres
-    restart: unless-stopped
+  # ─────────────────────────── Инфраструктура обмена сообщениями ───────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: eventapi-zookeeper
     environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2181 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: eventapi-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      # Внешний listener для подключения с хоста (например, из dotnet run локально).
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # Два listener'а: INTERNAL — для сервисов внутри сети Docker, EXTERNAL — для хоста.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # Топик booking-confirmed создаёт event-service при старте (KafkaTopicInitializer),
+      # поэтому автосоздание топиков на брокере отключено.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-topics --bootstrap-server localhost:29092 --list || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  # ─────────────────────────── Базы данных (по одной на сервис) ───────────────────────────
+  users-db:
+    image: postgres:17-alpine
+    container_name: eventapi-users-db
+    environment:
+      POSTGRES_DB: users
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: eventapi
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - eventapi_pgdata:/var/lib/postgresql/data
+      - users-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d eventapi"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+  events-db:
+    image: postgres:17-alpine
+    container_name: eventapi-events-db
+    environment:
+      POSTGRES_DB: events
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - events-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bookings-db:
+    image: postgres:17-alpine
+    container_name: eventapi-bookings-db
+    environment:
+      POSTGRES_DB: bookings
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - bookings-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─────────────────────────── Сервисы приложения ───────────────────────────
+  user-service:
+    build:
+      context: .
+      dockerfile: UserService/Dockerfile
+    container_name: eventapi-user-service
+    depends_on:
+      users-db:
+        condition: service_healthy
+    environment:
+      <<: *jwt-env
+      ASPNETCORE_ENVIRONMENT: Development # включает Swagger
+      # Первый администратор (роль Admin нельзя получить обычной регистрацией)
+      AdminSeed__Login: ${ADMIN_LOGIN:-admin}
+      AdminSeed__Password: ${ADMIN_PASSWORD:-admin123}
+      ConnectionStrings__DefaultConnection: Host=users-db;Port=5432;Database=users;Username=postgres;Password=postgres
+    ports:
+      - "5129:8080"
+
+  event-service:
+    build:
+      context: .
+      dockerfile: EventService/Dockerfile
+    container_name: eventapi-event-service
+    depends_on:
+      events-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *jwt-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=events-db;Port=5432;Database=events;Username=postgres;Password=postgres
+      Kafka__BootstrapServers: kafka:29092
+      Kafka__ConsumerGroup: event-service
+    ports:
+      - "5128:8080"
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: BookingService/Dockerfile
+    container_name: eventapi-booking-service
+    depends_on:
+      bookings-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *jwt-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=bookings-db;Port=5432;Database=bookings;Username=postgres;Password=postgres
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "5130:8080"
 
 volumes:
-  eventapi_pgdata:
+  users-db-data:
+  events-db-data:
+  bookings-db-data:
