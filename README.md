@@ -38,6 +38,46 @@ Swagger каждого сервиса: `http://localhost:<порт>/swagger` (в
 Каждый сервис построен по принципам чистой архитектуры: `Domain ← Application ← Infrastructure ← Presentation`
 (зависимости направлены внутрь). Общий код лежит в `Shared`.
 
+```mermaid
+flowchart LR
+    Client([Клиент])
+
+    subgraph Users[UserService]
+        U[Auth API]
+    end
+    subgraph Events[EventService]
+        E[Events API]
+        C[BookingConfirmedConsumer]
+    end
+    subgraph Bookings[BookingService]
+        B[Bookings API]
+        BG[BookingBackgroundService]
+        P[KafkaBookingEventPublisher]
+    end
+
+    UDB[(users-db)]
+    EDB[(events-db)]
+    BDB[(bookings-db)]
+    K{{"Kafka<br/>topic: booking-confirmed"}}
+
+    Client -->|POST /auth/login → JWT| U
+    Client -->|JWT| E
+    Client -->|JWT| B
+    U --- UDB
+    E --- EDB
+    B --- BDB
+    B --> BG --> P -->|BookingConfirmed| K
+    K -->|BookingConfirmed| C --> E
+```
+
+Принципы:
+
+- **Никаких синхронных вызовов между сервисами.** Bookings ничего не знает про устройство Events.
+- **Согласованность в конечном счёте (eventual consistency).** Места у события уменьшаются не мгновенно, а после
+  обработки сообщения из Kafka.
+- **Общий JWT.** Токен выдаёт только UserService; EventService и BookingService проверяют его по общим
+  секрету, издателю и аудитории.
+
 ## Поток данных BookingConfirmed
 
 | Шаг | Кто | Что происходит |
@@ -143,12 +183,12 @@ dotnet build Yandex.slnx
 
 Удобнее всего в Swagger (кнопка **Authorize**); ниже — то же через `curl`.
 
-**1. Зарегистрировать администратора и получить токен (UserService)**
+**1. Получить токен администратора (UserService)**
+
+Первый администратор создаётся сидом при старте UserService (`AdminSeed`, в Docker по умолчанию `admin` / `admin123`).
+Обычный пользователь регистрируется через `POST /auth/register`; роль `Admin` при самостоятельной регистрации запрещена (`403`).
 
 ```bash
-curl -X POST http://localhost:5129/auth/register -H "Content-Type: application/json" \
-  -d '{"login":"admin","password":"admin123","role":"Admin"}'
-
 curl -X POST http://localhost:5129/auth/login -H "Content-Type: application/json" \
   -d '{"login":"admin","password":"admin123"}'
 # в ответе — token; дальше он подставляется как TOKEN
@@ -211,10 +251,12 @@ docker exec -it eventapi-kafka kafka-console-consumer --bootstrap-server localho
 | `POST/PUT/DELETE /events` без токена | `401 Unauthorized` |
 | `POST/PUT/DELETE /events` с токеном роли `User` | `403 Forbidden` |
 
+Роль `Admin` выдаётся только сидом (`AdminSeed`) или существующим администратором (`POST /auth/register` с токеном админа и `"role":"Admin"`).
+
 Роль лежит в claim `ClaimTypes.Role`, идентификатор пользователя — в `ClaimTypes.NameIdentifier`; сервисы читают их из
 токена и не обращаются в UserService.
 
-> **Секрет в `appsettings.json` — только для учебного стенда.** В реальной среде используйте user-secrets,
+> **Секрет и пароль админа в `appsettings.json` / `docker-compose.yml` — только для учебного стенда.** В реальной среде используйте user-secrets,
 > переменные окружения (`Jwt__Secret`) или хранилище секретов. Секрет должен быть не короче 32 символов.
 
 ## Конфигурация
@@ -225,6 +267,7 @@ docker exec -it eventapi-kafka kafka-console-consumer --bootstrap-server localho
 |---|---|---|---|
 | `ConnectionStrings__DefaultConnection` | все | Строка подключения к **своей** базе | `Host=events-db;Port=5432;Database=events;...` |
 | `Jwt__Secret`, `Jwt__Issuer`, `Jwt__Audience` | все | Общие параметры JWT | см. `x-jwt-env` |
+| `AdminSeed__Login`, `AdminSeed__Password` | Users | Первый администратор (создаётся при старте, если его нет) | `admin` / `admin123` (`ADMIN_LOGIN`, `ADMIN_PASSWORD`) |
 | `Kafka__BootstrapServers` | Events, Bookings | Адрес брокера | `kafka:29092` |
 | `Kafka__ConsumerGroup` | Events | Группа потребителей | `event-service` |
 | `Kafka__TopicPartitions` / `Kafka__TopicReplicationFactor` | Events | Параметры создаваемого топика | `3` / `1` |
@@ -237,10 +280,12 @@ docker exec -it eventapi-kafka kafka-console-consumer --bootstrap-server localho
 ## Тесты
 
 ```bash
-dotnet test Yandex.slnx
+dotnet test --solution Yandex.slnx
 ```
 
-- **Юнит-тесты** (`*.UnitTests`) используют InMemory-провайдер EF Core и не требуют внешних сервисов.
+- **Юнит-тесты** (`*.UnitTests`) используют InMemory-провайдер EF Core и не требуют внешних сервисов:
+  логика пользователей и хеширование паролей (UserService), лимит броней / отмена / доступ к чужой брони и публикация
+  `BookingConfirmed` после сохранения статуса (BookingService).
   В EventService — `BookingConfirmedHandlerTests`: уменьшение мест, повторная доставка (идемпотентность), событие не
   найдено, нет свободных мест.
 - **Интеграционные тесты** (`*.IntegrationTests`) работают с настоящим PostgreSQL через Testcontainers — нужен запущенный
@@ -264,3 +309,13 @@ dotnet test Yandex.slnx
 
 В каждой папке сервиса есть свои `README.md`, `CHANGELOG.md` и `Dockerfile` (многоступенчатая сборка; контекст сборки —
 корень репозитория, так как нужна папка `Shared`).
+
+## Известные ограничения
+
+- **Нет outbox.** Бронь сначала сохраняется как `Confirmed`, и только потом публикуется событие. Если Kafka недоступна
+  дольше трёх попыток публикации, событие теряется (бронь останется подтверждённой, а места не уменьшатся).
+  Надёжное решение — паттерн Transactional Outbox.
+- **Нет компенсации.** Отмена подтверждённой брони пока не возвращает места (нужно событие `BookingCancelled`).
+- **Нет синхронных проверок между сервисами.** Bookings не проверяет, что событие существует и ещё не началось, а Events
+  при нехватке мест просто пропускает сообщение. Бронь на несуществующее событие тоже станет `Confirmed`.
+- Одна бронь занимает одно место (`Seats = 1`).

@@ -17,8 +17,14 @@ public class UserService(
     IJwtTokenGenerator jwtTokenGenerator) : IUserService
 {
     public async Task<UserDto> RegisterAsync(
-        RegisterRequest request, CancellationToken cancellationToken = default)
+        RegisterRequest request, bool callerIsAdmin = false, CancellationToken cancellationToken = default)
     {
+        // Роль Admin нельзя получить самостоятельной регистрацией: только через сид или от другого администратора
+        if (request.Role == UserRole.Admin && !callerIsAdmin)
+        {
+            throw new ForbiddenException("Only an administrator can create users with the Admin role");
+        }
+
         var existing = await userRepository.GetByLoginAsync(request.Login, cancellationToken);
         if (existing is not null)
         {

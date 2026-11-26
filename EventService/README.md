@@ -97,5 +97,5 @@ Dockerfile                   # многоступенчатая сборка (к
 ## Тесты
 
 ```bash
-dotnet test EventService/EventService.slnx
+dotnet test --solution EventService/EventService.slnx
 ```

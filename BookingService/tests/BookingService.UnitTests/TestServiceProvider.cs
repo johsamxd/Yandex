@@ -32,5 +32,7 @@ internal sealed class TestServiceProvider : IDisposable
 
     public IServiceScope CreateScope() => _provider.CreateScope();
 
+    public IServiceScopeFactory ScopeFactory => _provider.GetRequiredService<IServiceScopeFactory>();
+
     public void Dispose() => _provider.Dispose();
 }

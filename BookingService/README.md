@@ -97,5 +97,5 @@ Dockerfile                     # многоступенчатая сборка (
 ## Тесты
 
 ```bash
-dotnet test BookingService/BookingService.slnx
+dotnet test --solution BookingService/BookingService.slnx
 ```

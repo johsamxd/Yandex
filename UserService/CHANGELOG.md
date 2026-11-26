@@ -3,6 +3,24 @@
 Формат — [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии — [SemVer](https://semver.org/lang/ru/).
 Изменения всей системы — в [корневом CHANGELOG.md](../CHANGELOG.md).
 
+## [0.9.1] — 2026-11-26
+
+### Добавлено
+
+- Сид первого администратора при старте (`AdminSeed:Login`, `AdminSeed:Password`).
+- Юнит-тесты: `UserServiceTests`, `Pbkdf2PasswordHasherTests`, `AdminSeederTests`.
+- Миграция `WidenPasswordHash`: колонка `PasswordHash` расширена до 256 символов.
+
+### Изменено
+
+- `Pbkdf2PasswordHasher` (PBKDF2-HMAC-SHA256, соль, 600 000 итераций) заменил `Sha256PasswordHasher`.
+  Формат хеша `v1.{итерации}.{соль}.{хеш}`; старые SHA-256 хеши не принимаются.
+- `POST /auth/register`: роль `Admin` разрешена только авторизованному администратору, иначе `403 Forbidden`.
+
+### Удалено
+
+- Файл `Options/BookingBackgroundOptions.cs` (в предыдущем архиве он остался в репозитории — удалите: `git rm`).
+
 ## [0.9.0] — 2026-11-25
 
 Сервис выделен из монолита (до этого — версии 0.1.0–0.8.0 в [корневом CHANGELOG.md](../CHANGELOG.md#история-монолита)).

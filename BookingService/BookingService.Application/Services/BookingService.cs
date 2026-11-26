@@ -83,7 +83,7 @@ public class BookingService(
 
         if (!isAdmin && data.UserId != userId)
         {
-            throw new ForbiddenException($"Booking cancellation is forbidden for user with id: {userId}");
+            throw new ForbiddenException($"Access to booking {bookingId} is forbidden for user with id: {userId}");
         }
 
         return mapper.Map<BookingDto>(data);

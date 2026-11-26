@@ -3,6 +3,18 @@
 Формат — [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии — [SemVer](https://semver.org/lang/ru/).
 Изменения всей системы — в [корневом CHANGELOG.md](../CHANGELOG.md).
 
+## [0.9.1] — 2026-11-26
+
+### Добавлено
+
+- Юнит-тесты `BookingServiceTests` (создание, лимит 10 активных броней, отмена, доступ к чужой брони, роль Admin)
+  вместо закомментированных тестов монолита.
+- `BookingBackgroundServiceTests`: событие публикуется после сохранения статуса `Confirmed`; при сбое публикации бронь остаётся `Confirmed`.
+
+### Исправлено
+
+- Текст `ForbiddenException` в `GetBookingByIdAsync` говорил про отмену, хотя метод читает бронь.
+
 ## [0.9.0] — 2026-11-25
 
 Сервис выделен из монолита (до этого — версии 0.1.0–0.8.0 в [корневом CHANGELOG.md](../CHANGELOG.md#история-монолита)).

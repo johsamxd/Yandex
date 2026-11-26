@@ -22,6 +22,9 @@ public static class InfrastructureServicesExtensions
         
         services.AddSingleton<IBookingEventPublisher, KafkaBookingEventPublisher>();
 
+        // Kafka-продюсер — singleton: создаётся один раз и освобождается (IDisposable) при остановке приложения
+        services.AddSingleton<IBookingEventPublisher, KafkaBookingEventPublisher>();
+
         return services;
     }
 }

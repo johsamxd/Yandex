@@ -3,6 +3,13 @@
 Формат — [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии — [SemVer](https://semver.org/lang/ru/).
 Изменения всей системы — в [корневом CHANGELOG.md](../CHANGELOG.md).
 
+## [0.9.1] — 2026-11-26
+
+### Исправлено
+
+- Из конструктора `Event` убрана строка `AvailableSeats = TotalSeats`: required-свойства заполняются после конструктора,
+  поэтому она всегда давала 0. Начальное значение выставляет `EventService.CreateEventAsync`.
+
 ## [0.9.0] — 2026-11-25
 
 Сервис выделен из монолита (до этого — версии 0.1.0–0.8.0 в [корневом CHANGELOG.md](../CHANGELOG.md#история-монолита)).

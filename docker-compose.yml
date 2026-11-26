@@ -121,7 +121,10 @@ services:
         condition: service_healthy
     environment:
       <<: *jwt-env
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Development # включает Swagger
+      # Первый администратор (роль Admin нельзя получить обычной регистрацией)
+      AdminSeed__Login: ${ADMIN_LOGIN:-admin}
+      AdminSeed__Password: ${ADMIN_PASSWORD:-admin123}
       ConnectionStrings__DefaultConnection: Host=users-db;Port=5432;Database=users;Username=postgres;Password=postgres
     ports:
       - "5129:8080"

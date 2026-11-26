@@ -120,6 +120,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    // Первый администратор (регистрация с ролью Admin запрещена)
+    await AdminSeeder.SeedAsync(scope.ServiceProvider,
+        configuration["AdminSeed:Login"], configuration["AdminSeed:Password"]);
 }
 
 app.Run();

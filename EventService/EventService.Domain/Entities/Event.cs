@@ -16,11 +16,6 @@ public class Event : BaseEntity
 
     public int AvailableSeats { get; set; }
 
-    public Event()
-    {
-        AvailableSeats = TotalSeats;
-    }
-
     public bool TryReserveSeats(int count = 1)
     {
         if (AvailableSeats - count < 0)

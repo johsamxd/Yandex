@@ -16,31 +16,43 @@
 
 | Метод | Endpoint | Описание | Ответ |
 |---|---|---|---|
-| POST | `/auth/register` | Регистрация. Тело: `login`, `password`, `role` (необязательно, по умолчанию `User`) | `201 Created` / `400` / `409 Conflict` |
+| POST | `/auth/register` | Регистрация. Тело: `login`, `password`, `role` (необязательно, по умолчанию `User`). Роль `Admin` может назначить только авторизованный администратор | `201 Created` / `400` (в т. ч. логин занят) / `403` |
 | POST | `/auth/login` | Вход. Тело: `login`, `password` | `200 OK` с `token` / `400` / `401` |
 
 Пример:
 
 ```json
 POST /auth/register
-{ "login": "admin", "password": "admin123", "role": "Admin" }
+{ "login": "alice", "password": "secret123" }
 
 POST /auth/login
-{ "login": "admin", "password": "admin123" }
+{ "login": "alice", "password": "secret123" }
 ```
 
 Токен подписывается HMAC-SHA256 и содержит claims `NameIdentifier` (id пользователя), `Name` (логин), `Role`.
 
+## Администраторы
+
+Самостоятельно зарегистрироваться с ролью `Admin` нельзя (`403 Forbidden`). Администратора создаёт:
+
+- **сид при старте** — секция `AdminSeed` (`Login`, `Password`); если пользователь с таким логином уже есть, он не меняется;
+- **другой администратор** — `POST /auth/register` с его токеном и `"role": "Admin"`.
+
+Смените пароль из `appsettings.json` / `docker-compose.yml` вне учебного стенда.
+
 ## Данные
 
-Таблица `Users` (уникальный индекс по `Login`): `Id`, `Login`, `PasswordHash` (SHA-256), `Role` (`User` / `Admin`), `CreatedAt`.
-Миграция EF Core `Initial` лежит в `UserService.Infrastructure/Persistence/Migrations` и применяется при старте сервиса.
+Таблица `Users` (уникальный индекс по `Login`): `Id`, `Login`, `PasswordHash`, `Role` (`User` / `Admin`), `CreatedAt`.
+
+Пароль хранится как **PBKDF2-HMAC-SHA256 со случайной солью** (600 000 итераций), формат `v1.{итерации}.{соль}.{хеш}` —
+одинаковые пароли дают разные хеши. Миграции EF Core (`Initial`, `WidenPasswordHash`) лежат в `UserService.Infrastructure/Persistence/Migrations` и применяется при старте сервиса.
 
 ## Конфигурация
 
 | Ключ | Описание | По умолчанию |
 |---|---|---|
 | `ConnectionStrings:DefaultConnection` | Подключение к `users` | `Host=localhost;Port=5433;Database=users;...` |
+| `AdminSeed:Login` / `AdminSeed:Password` | Первый администратор | `admin` / `admin123` |
 | `Jwt:Secret` | Секрет подписи (≥ 32 символов) | значение для учебного стенда |
 | `Jwt:Issuer` | Издатель токена | `YandexApi` |
 | `Jwt:Audience` | Аудитория токена | `YandexClient` |
@@ -66,7 +78,7 @@ dotnet run --project UserService/UserService.Presentation
 ```text
 UserService.Domain          # User
 UserService.Application     # IUserService, валидаторы, абстракции IPasswordHasher / IJwtTokenGenerator
-UserService.Infrastructure  # EF Core (AppDbContext, миграции), Sha256PasswordHasher, JwtTokenGenerator
+UserService.Infrastructure  # EF Core (AppDbContext, миграции), Pbkdf2PasswordHasher, JwtTokenGenerator
 UserService.Presentation    # AuthController, Program.cs, Swagger
 tests/                      # UserService.UnitTests, UserService.IntegrationTests
 Dockerfile                  # многоступенчатая сборка (контекст — корень репозитория)
@@ -75,5 +87,5 @@ Dockerfile                  # многоступенчатая сборка (к�
 ## Тесты
 
 ```bash
-dotnet test UserService/UserService.slnx
+dotnet test --solution UserService/UserService.slnx
 ```
